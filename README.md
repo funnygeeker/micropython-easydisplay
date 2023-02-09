@@ -41,7 +41,7 @@ from libs.easydisplay import EasyDisplay
 
 spi = SPI(1, baudrate=20000000, polarity=0, phase=0, sck=Pin(1), mosi=Pin(0))
 dp = st7735.ST7735(width=160, height=128, spi=spi, cs=Pin(19), dc=Pin(18), rst=Pin(3), rot=1)
-ed = EasyDisplay(display=dp, font_file="/fonts/smiley_sans/smiley16.bmf", show=True, font_color=0xFFFF, clear=True,
+ed = EasyDisplay(display=dp, font_file="/fonts/harmonyos_sans/harmonyos16.bmf", show=True, font_color=0xFFFF, clear=True,
                  img_format=framebuf.RGB565, img_color=0xFFFF)
 
 ed.bmp("/img/test.bmp", 0, 0)
