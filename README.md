@@ -1,6 +1,12 @@
 # micropython-easydisplay
 适用于 micropython 的简易显示库
 
+#### 显示效果
+![font_display](https://user-images.githubusercontent.com/96659329/217912388-32b67ae0-c586-426a-8409-15d66626af67.jpg)
+![bmp_color_display](https://user-images.githubusercontent.com/96659329/217912256-576ae657-9355-4384-a8b3-1430f295f700.jpg)
+![pbm_display](https://user-images.githubusercontent.com/96659329/217912280-92b902f8-b177-4b37-bc25-84ffdb13978b.jpg)
+
+
 #### 适用范围
 - 基于一些开源项目，对适用于 MicroPython 的一些常用的显示功能进行了整合和封装，采用 Framebuf 缓冲区的驱动才能够使用
 
