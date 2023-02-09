@@ -1,7 +1,7 @@
 # micropython-easydisplay
 适用于 micropython 的简易显示库（自用，顺便开源，测试图是自己画的）
 
-`pbm` 格式的图像转换工具会在过一段时间放进来，在此之前，您可以使用库中源码注释中的方法通过 `python` 将图片转换为 `pbm` 格式，或者使用 `Image2Lcd` 这款软件将图片转换为 `24-bit` 的 `bmp` 格式（水平扫描，包含图像头数据，灰度二十四位）
+`pbm` 格式的图像转换工具会在过一段时间放进来，在此之前，您可以使用库中源码注释中的方法通过 `python` 将图片转换为 `pbm` 格式，您可以通过使用 windows 的 画图 将图片转换为 `24-bit` 的 `bmp` 格式，或者使用 `Image2Lcd` 这款软件将图片转换为 `24-bit` 的 `bmp` 格式（水平扫描，包含图像头数据，灰度二十四位）
 
 ### 显示效果
 ![font_display](https://user-images.githubusercontent.com/96659329/217912388-32b67ae0-c586-426a-8409-15d66626af67.jpg)
