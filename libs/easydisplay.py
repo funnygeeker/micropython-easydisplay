@@ -123,6 +123,7 @@ class EasyDisplay:
         显示 pbm 图片
 
         # 您可以通过使用 python3 的 pillow 库将图片转换为 pbm 格式，比如：
+        # convert_type = "1"  # 1 为黑白图像，RGBA 为24位彩色图像
         # from PIL import Image
         # with Image.open("文件名.png", "r") as img:
         #   img2 = img.convert(convert_type)
@@ -205,7 +206,8 @@ class EasyDisplay:
         """
         显示 bmp 图片
 
-        # 您可以通过使用 windows 的 画图 将图片转换为 bmp 格式
+        # 您可以通过使用 windows 的 画图 将图片转换为 `24-bit` 的 `bmp` 格式
+        # 也可以使用 `Image2Lcd` 这款软件将图片转换为 `24-bit` 的 `bmp` 格式（水平扫描，包含图像头数据，灰度二十四位）
 
         Args:
             file: pbm 文件所在位置
