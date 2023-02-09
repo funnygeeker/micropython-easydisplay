@@ -1,5 +1,6 @@
 # micropython-easydisplay
 适用于 micropython 的简易显示库（自用，顺便开源，测试图是自己画的）
+图像转换工具过一段时间放进来，您也可以使用 `Image2Lcd` 将图片转换为 `24-bit` 的 `bmp` 格式
 
 ### 显示效果
 ![font_display](https://user-images.githubusercontent.com/96659329/217912388-32b67ae0-c586-426a-8409-15d66626af67.jpg)
