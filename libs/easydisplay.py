@@ -95,13 +95,20 @@ class EasyDisplay:
             half_char: 是否半字节显示 ASCII 字符
             auto_wrap: 自动换行
         """
-        c = c or self._font_color
-        size = size or self._font_size
-        reverse = reverse or self._reverse
-        clear = clear or self._clear
-        show = show or self._show
-        half_char = half_char or self._font_half_char
-        auto_wrap = auto_wrap or self._font_auto_wrap
+        if c is None:
+            c = self._font_color
+        if size is None:
+            size = self._font_size
+        if reverse is None:
+            reverse = self._reverse
+        if clear is None:
+            clear = self._clear
+        if show is None:
+            show = self._show
+        if half_char is None:
+            half_char = self._font_half_char
+        if auto_wrap is None:
+            auto_wrap = self._font_auto_wrap
 
         self._font.text(
             display=self.display,  # 显示对象 必要
@@ -135,17 +142,23 @@ class EasyDisplay:
             y: 显示器上示图片位置的 y 坐标
             show: 是否立即显示
             clear: 是否清除之前显示的内容
-            color: 黑白图像的默认颜色
+            color: 显示黑白图像或将彩色图像以黑白模式显示时的默认颜色
             key: 显示图像时不显示的颜色
             reverse: 是否反转颜色
             format: 显示图像时使用的模式：framebuf.MONO_HLSB（单色显示），framebuf.RGB565（彩色显示）
         """
-        show = show or self._show
-        clear = clear or self._clear
-        color = color or self._img_color
-        key = key or self._img_key
-        reverse = reverse or self._reverse
-        format = format or self._img_format
+        if show is None:
+            show = self._show
+        if clear is None:
+            clear = self._clear
+        if color is None:
+            color = self._img_color
+        if key is None:
+            key = self._img_key
+        if reverse is None:
+            reverse = self._reverse
+        if format is None:
+            format = self._img_format
         if clear:  # 清屏
             self.clear()
         with open(file, "rb") as f:
@@ -201,8 +214,8 @@ class EasyDisplay:
         if show:  # 立即显示
             self.show()
 
-    def bmp(self, file: str, x, y, show: bool = None, clear: bool = None, key: int = None, reverse: bool = None,
-            format: int = None):
+    def bmp(self, file: str, x, y, show: bool = None, clear: bool = None, color: int = None, key: int = None,
+            reverse: bool = None, format: int = None):
         """
         显示 bmp 图片
 
@@ -215,15 +228,23 @@ class EasyDisplay:
             y: 显示器上示图片位置的 y 坐标
             show: 是否立即显示
             clear: 是否清除之前显示的内容
+            color: 显示黑白图像或将彩色图像以黑白模式显示时的默认颜色
             key: 显示图像时不显示的颜色
             reverse: 是否反转颜色
             format: 显示图像时使用的模式：framebuf.MONO_HLSB（单色显示），framebuf.RGB565（彩色显示）
                 """
-        show = show or self._show
-        clear = clear or self._clear
-        key = key or self._img_key
-        reverse = reverse or self._reverse
-        format = format or self._img_format
+        if show is None:
+            show = self._show
+        if clear is None:
+            clear = self._clear
+        if color is None:
+            color = self._img_color
+        if key is None:
+            key = self._img_key
+        if reverse is None:
+            reverse = self._reverse
+        if format is None:
+            format = self._img_format
         with open(file, 'rb') as f:
             if f.read(2) == b'BM':  # 检查文件头来判断是否为支持的文件类型
                 dummy = f.read(8)  # 文件大小占四个字节，文件作者占四个字节，file size(4), creator bytes(4)
@@ -272,10 +293,10 @@ class EasyDisplay:
                                         if _color:
                                             _color = 0
                                         else:
-                                            _color = self._img_color
+                                            _color = color
                                     else:
                                         if _color:
-                                            _color = self._img_color
+                                            _color = color
                                         else:
                                             _color = 0
                                 if _color != key:  # 不显示指定颜色
