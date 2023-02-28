@@ -85,7 +85,7 @@ class EasyDisplay:
         """
         self.display.show()
 
-    def font(self, s: str, x: int, y: int, c: int = None, size: int = None, show: bool = None, clear: bool = None,
+    def text(self, s: str, x: int, y: int, c: int = None, size: int = None, show: bool = None, clear: bool = None,
              reverse: bool = None, half_char: bool = None, auto_wrap: bool = None, alpha_bg: int = None):
         """
         显示字体中的文字（请确保初始化时已加载字体文件）
