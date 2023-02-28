@@ -54,19 +54,19 @@ class EasyDisplay:
             img_format: 默认显示图像时使用的模式：framebuf.MONO_HLSB（单色显示），framebuf.RGB565（彩色显示）
         """
         self.display = display
-        self._reverse = reverse
-        self._clear = clear
-        self._show = show
+        self.any_reverse = reverse
+        self.any_clear = clear
+        self.any_show = show
         if font_file:
             self._font = BMFont(font_file)  # 字体显示
-        self._font_color = font_color
-        self._font_size = font_size
-        self._font_half_char = font_half_char
-        self._font_auto_wrap = font_auto_wrap
-        self._font_alpha_bg = font_alpha_bg
-        self._img_alpha = img_alpha
-        self._img_color = img_color
-        self._img_format = img_format
+        self.font_color = font_color
+        self.font_size = font_size
+        self.font_half_char = font_half_char
+        self.font_auto_wrap = font_auto_wrap
+        self.font_alpha_bg = font_alpha_bg
+        self.img_alpha = img_alpha
+        self.img_color = img_color
+        self.img_format = img_format
 
     @staticmethod
     def rgb(r, g, b):  # 感谢 ChatGPT 对代码的性能优化，性能提升 30%
@@ -104,21 +104,21 @@ class EasyDisplay:
             alpha_bg: 背景透明
         """
         if c is None:
-            c = self._font_color
+            c = self.font_color
         if size is None:
-            size = self._font_size
+            size = self.font_size
         if reverse is None:
-            reverse = self._reverse
+            reverse = self.any_reverse
         if clear is None:
-            clear = self._clear
+            clear = self.any_clear
         if show is None:
-            show = self._show
+            show = self.any_show
         if half_char is None:
-            half_char = self._font_half_char
+            half_char = self.font_half_char
         if auto_wrap is None:
-            auto_wrap = self._font_auto_wrap
+            auto_wrap = self.font_auto_wrap
         if alpha_bg is None:
-            alpha_bg = self._font_alpha_bg
+            alpha_bg = self.font_alpha_bg
 
         self._font.text(
             display=self.display,  # 显示对象 必要
@@ -159,17 +159,17 @@ class EasyDisplay:
             format: 显示图像时使用的模式：framebuf.MONO_HLSB（单色显示），framebuf.RGB565（彩色显示）
         """
         if show is None:
-            show = self._show
+            show = self.any_show
         if clear is None:
-            clear = self._clear
+            clear = self.any_clear
         if color is None:
-            color = self._img_color
+            color = self.img_color
         if alpha is None:
-            alpha = self._img_alpha
+            alpha = self.img_alpha
         if reverse is None:
-            reverse = self._reverse
+            reverse = self.any_reverse
         if format is None:
-            format = self._img_format
+            format = self.img_format
         if clear:  # 清屏
             self.clear()
         with open(file, "rb") as f:
@@ -245,17 +245,17 @@ class EasyDisplay:
             format: 显示图像时使用的模式：framebuf.MONO_HLSB（单色显示），framebuf.RGB565（彩色显示）
                 """
         if show is None:
-            show = self._show
+            show = self.any_show
         if clear is None:
-            clear = self._clear
+            clear = self.any_clear
         if color is None:
-            color = self._img_color
+            color = self.img_color
         if alpha is None:
-            alpha = self._img_alpha
+            alpha = self.img_alpha
         if reverse is None:
-            reverse = self._reverse
+            reverse = self.any_reverse
         if format is None:
-            format = self._img_format
+            format = self.img_format
         with open(file, 'rb') as f:
             if f.read(2) == b'BM':  # 检查文件头来判断是否为支持的文件类型
                 dummy = f.read(8)  # 文件大小占四个字节，文件作者占四个字节，file size(4), creator bytes(4)
