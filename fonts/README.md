@@ -1,7 +1,4 @@
 ## 字体文件（Chinese）
-# TODO 2311
-- 修复 `Lite` 字符集缺少空格的问题
-- 更换更合适的字体，以优化英文显示
 
 ### 文件格式
 - `.bmf` 文件均为本 `micropython-easydisplay` 项目的字体文件，包含了一些常见字体。
@@ -17,7 +14,11 @@
 ### 兼容性
 - 当前字体版本为 `V3` 版本，与 [MicroPython-uFont](https://github.com/AntonVanke/MicroPython-uFont) 项目通用
 
-### 制作字体文件
+### TTF 字体文件
+- `8px`：[观致8px](https://www.maoken.com/freefonts/11358.html)
+- `16px` `24px` `32px`：[HarmonyOS Sans](https://developer.harmonyos.com/cn/design/resource)
+
+### 制作 BMF 字体文件
 - [https://github.com/AntonVanke/MicroPython-uFont-Tools](https://github.com/AntonVanke/MicroPython-uFont-Tools)
 
 
@@ -38,5 +39,9 @@
 ### Compatibility
 - The current font version is `V3` and is compatible with the [MicroPython-uFont](https://github.com/AntonVanke/MicroPython-uFont) project.
 
-### Create Font Files
+### TTF Font File
+- `8px`：[观致8px](https://www.maoken.com/freefonts/11358.html)
+- `16px` `24px` `32px`：[HarmonyOS Sans](https://developer.harmonyos.com/cn/design/resource)
+
+### Create BMF Font Files
 - [https://github.com/AntonVanke/MicroPython-uFont-Tools](https://github.com/AntonVanke/MicroPython-uFont-Tools)

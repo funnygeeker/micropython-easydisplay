@@ -446,20 +446,23 @@ class EasyDisplay:
             if file_format == b"P4\n":  # P4 位图 二进制
                 if self._buffer == 0:  # 直接驱动
                     buffer_size = self.BUFFER_SIZE
+                    if reversion:  # New
+                        color, bg_color = bg_color, color
                     palette = self._calculate_palette(color, bg_color)  # 计算调色板
                     dp.set_window(x, y, x + _width - 1, y + _height + 1)  # 设置窗口
                     data = f_read(buffer_size)
                     write_data = dp.write_data
                     while data:
-                        if reversion:
-                            data = bytes([~b & 0xFF for b in data])
+                        # if reversion:  # Old
+                        #     data = bytes([~b & 0xFF for b in data])
                         buffer = self._flatten_byte_data(data, palette)
                         write_data(buffer)
                         data = f_read(buffer_size)  # 30 * 8 = 240, 理论上 ESP8266 的内存差不多能承载这个大小的彩色图片
                 else:  # Framebuffer 模式
                     data = bytearray(f_read())
                     if reversion:
-                        data = bytearray([~b & 0xFF for b in data])
+                        # data = bytearray([~b & 0xFF for b in data])  # Old
+                        color, bg_color = bg_color, color  # New
                         # data = self._reverse_byte_data(data)
                     if color_type == MONO_HLSB:
                         fbuf = FrameBuffer(data, _width, _height, MONO_HLSB)
@@ -538,10 +541,10 @@ class EasyDisplay:
                                 else:
                                     _color = bg_color
                                 if _color != key:  # 不显示指定颜色
-                                    dp_pixel(_x + x, _y + y, _color)  # TODO 使用缓冲区进行性能优化
+                                    dp_pixel(_x + x, _y + y, _color)  # NOTE 可使用缓冲区进行性能优化，考虑到兼容性，暂不修改
                         if color_type == RGB565:
                             dp.write_data(buffer)
-                        # TODO 使用缓冲区进行性能优化
+                        # NOTE 可使用缓冲区进行性能优化，考虑到兼容性，暂不修改
 
             else:
                 raise TypeError("Unsupported File Format Type.")
@@ -658,7 +661,7 @@ class EasyDisplay:
                                         else:
                                             _color = bg_color
                                         if _color != key:  # 不显示指定颜色
-                                            dp_pixel(_x + x, _y + y, _color)  # TODO 使用缓冲区进行性能优化
+                                            dp_pixel(_x + x, _y + y, _color)  # NOTE 可使用缓冲区进行性能优化，考虑到兼容性，暂不修改
 
                             if color_type == RGB565:
                                 if self_buf:
@@ -666,7 +669,7 @@ class EasyDisplay:
                                     dp.blit(fbuf, x, y + _y, key)
                                 else:
                                     dp.write_data(buffer)
-                            # TODO 使用缓冲区进行性能优化
+                            # NOTE 可使用缓冲区进行性能优化，考虑到兼容性，暂不修改
 
                         if show:  # 立即显示
                             try:
