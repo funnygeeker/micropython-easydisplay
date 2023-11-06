@@ -327,21 +327,32 @@ class EasyDisplay:
             pass
 
         dp = self.display
-        for char in range(len(s)):
-            if auto_wrap and ((x + font_size // 2 > dp.width and ord(s[char]) < 128 and half_char) or
-                              (x + font_size > dp.width and (not half_char or ord(s[char]) > 128))):
+        if font_size == 16:
+            font_offset = 12
+        elif font_size > 16:
+            font_offset = int(font_size * 0.69) + 1
+        else:  # 例如：8px
+            font_offset = font_size // 2
+        for char in s:
+            if char in ('M', 'O', 'Q', 'V', 'W', 'X', 'm', 'w'):  # 更好的适配英文字符
+                _half_char = False
+            else:
+                _half_char = half_char
+
+            if auto_wrap and ((x + font_offset > dp.width and ord(char) < 128 and _half_char) or
+                              (x + font_size > dp.width and (not _half_char or ord(char) > 128))):
                 y += font_size + line_spacing
                 x = initial_x
 
             # 对控制字符的处理
-            if s[char] == '\n':
+            if char == '\n':
                 y += font_size + line_spacing
                 x = initial_x
                 continue
-            elif s[char] == '\t':
+            elif char == '\t':
                 x = ((x // font_size) + 1) * font_size + initial_x % font_size
                 continue
-            elif ord(s[char]) < 16:
+            elif ord(char) < 16:
                 continue
 
             # 超过范围的字符不会显示*
@@ -349,7 +360,7 @@ class EasyDisplay:
                 continue
 
             # 获取字体的点阵数据
-            byte_data = list(self.get_bitmap(s[char]))
+            byte_data = list(self.get_bitmap(char))
 
             # 分四种情况逐个优化
             #   1. 黑白屏幕/无放缩
@@ -388,8 +399,8 @@ class EasyDisplay:
                         dp.set_window(x, y, x + font_size - 1, y + font_size + 1)
                         dp.write_data(data)
             # 英文字符半格显示
-            if ord(s[char]) < 128 and half_char:
-                x += font_size // 2
+            if ord(char) < 128 and _half_char:
+                x += font_offset
             else:
                 x += font_size
 
