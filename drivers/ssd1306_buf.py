@@ -1,8 +1,8 @@
 # 来源：https://pypi.org/project/micropython-ssd1306/
 # MicroPython SSD1306 OLED driver, I2C and SPI interfaces
-
-from micropython import const
+import math
 import framebuf
+from micropython import const
 
 # register definitions
 SET_CONTRAST = const(0x81)
@@ -119,6 +119,44 @@ class SSD1306_I2C(SSD1306):
         self.write_list[1] = buf
         self.i2c.writevto(self.addr, self.write_list)
 
+    def circle(self, center, radius, c, section=100):
+        """
+        画圆
+
+        Args:
+            c: 颜色
+            center: 中心(x, y)
+            radius: 半径
+            section: 分段
+        """
+        arr = []
+        for m in range(section + 1):
+            x = round(radius * math.cos((2 * math.pi / section) * m - math.pi) + center[0])
+            y = round(radius * math.sin((2 * math.pi / section) * m - math.pi) + center[1])
+            arr.append([x, y])
+        for i in range(len(arr) - 1):
+            self.line(*arr[i], *arr[i + 1], c)
+
+    def fill_circle(self, center, radius, c):
+        """
+        画填充圆
+
+        Args:
+            c: 颜色
+            center: 中心(x, y)
+            radius: 半径
+        """
+        rsq = radius * radius
+        for x in range(radius):
+            y = int(math.sqrt(rsq - x * x))  # 计算 y 坐标
+            y0 = center[1] - y
+            end_y = y0 + y * 2
+            y0 = max(0, min(y0, self.height))  # 将 y0 限制在画布的范围内
+            length = abs(end_y - y0) + 1
+            self.vline(center[0] + x, y0, length, c)  # 绘制左右两侧的垂直线
+            self.vline(center[0] - x, y0, length, c)
+
+
 
 class SSD1306_SPI(SSD1306):
     def __init__(self, width, height, spi, dc, res, cs, external_vcc=False):
@@ -154,3 +192,40 @@ class SSD1306_SPI(SSD1306):
         self.cs(0)
         self.spi.write(buf)
         self.cs(1)
+
+    def circle(self, center, radius, c, section=100):
+        """
+        画圆
+
+        Args:
+            c: 颜色
+            center: 中心(x, y)
+            radius: 半径
+            section: 分段
+        """
+        arr = []
+        for m in range(section + 1):
+            x = round(radius * math.cos((2 * math.pi / section) * m - math.pi) + center[0])
+            y = round(radius * math.sin((2 * math.pi / section) * m - math.pi) + center[1])
+            arr.append([x, y])
+        for i in range(len(arr) - 1):
+            self.line(*arr[i], *arr[i + 1], c)
+
+    def fill_circle(self, center, radius, c):
+        """
+        画填充圆
+
+        Args:
+            c: 颜色
+            center: 中心(x, y)
+            radius: 半径
+        """
+        rsq = radius * radius
+        for x in range(radius):
+            y = int(math.sqrt(rsq - x * x))  # 计算 y 坐标
+            y0 = center[1] - y
+            end_y = y0 + y * 2
+            y0 = max(0, min(y0, self.height))  # 将 y0 限制在画布的范围内
+            length = abs(end_y - y0) + 1
+            self.vline(center[0] + x, y0, length, c)  # 绘制左右两侧的垂直线
+            self.vline(center[0] - x, y0, length, c)
