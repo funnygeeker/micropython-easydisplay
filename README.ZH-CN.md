@@ -7,7 +7,7 @@
 
 ### 显示效果
 以下为 `2.0` 版本的显示效果
-![IMG_20231107_004232](https://github.com/funnygeeker/micropython-easydisplay/assets/96659329/94c3c17b-ef7c-4358-a74c-ed0966826030)
+![IMG_20231107_235742](https://github.com/funnygeeker/micropython-easydisplay/assets/96659329/f76a7713-7397-4a99-8ccd-37af7ebe0cbe)
 ![IMG_20231107_004226](https://github.com/funnygeeker/micropython-easydisplay/assets/96659329/e765b55a-45bb-486a-b15e-5161b4d876fa)
 ![IMG_20231107_004229](https://github.com/funnygeeker/micropython-easydisplay/assets/96659329/f82910c4-b515-4ffd-a00c-9eafffcbb0bf)
 
