@@ -21,6 +21,9 @@
 ### 使用方法
 - 详见源码注释
 
+### 注意事项
+`dat` 格式的图片在非framebuffer驱动模式下，不得超出屏幕显示范围，否则图像可能无法正常显示
+
 ### 示例代码
 ```python
 # 这是一个使用示例 This is an example of usage
