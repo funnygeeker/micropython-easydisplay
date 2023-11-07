@@ -1,7 +1,7 @@
 # Github: https://github.com/funnygeeker/micropython-easydisplay
 # Author: funnygeeker
 # Licence: MIT
-# Date: 2023/11/5
+# Date: 2023/11/7
 #
 # 参考项目:
 # https://github.com/AntonVanke/micropython-ufont
@@ -30,10 +30,10 @@ class EasyDisplay:
                  color_type=RGB565,
                  color: int = 0xFFFF,
                  bg_color: int = 0,
-                 text_size: int = 16,
-                 text_auto_wrap: bool = False,
-                 text_half_char: bool = True,
-                 text_line_spacing: int = 0,
+                 size: int = 16,
+                 auto_wrap: bool = False,
+                 half_char: bool = True,
+                 line_spacing: int = 0,
                  *args, **kwargs):
         """
         初始化 EasyDisplay
@@ -48,10 +48,10 @@ class EasyDisplay:
             color_type: 图像格式，RGB565 屏幕用 framebuf.RGB565，MONO_HLSB 屏幕用 framebuf.MONO_HLSB
             color: 图像主体颜色（仅彩色屏幕显示黑白图像时生效）
             bg_color: 图像背景颜色（仅彩色屏幕显示黑白图像时生效）
-            text_size: 文本字号大小
-            text_auto_wrap: 文本自动换行
-            text_half_char： 半宽显示 ASCII 字符
-            text_line_spacing: 文本行间距
+            size: 文本字号大小
+            auto_wrap: 文本自动换行
+            half_char： 半宽显示 ASCII 字符
+            line_spacing: 文本行间距
         """
         self.display = display
         try:
@@ -69,10 +69,10 @@ class EasyDisplay:
         self._color_type = color_type
         self._color = color
         self._bg_color = bg_color
-        self.text_size = text_size
-        self.text_auto_wrap = text_auto_wrap
-        self.text_half_char = text_half_char
-        self.text_line_spacing = text_line_spacing
+        self._size = size
+        self._auto_wrap = auto_wrap
+        self._half_char = half_char
+        self._line_spacing = line_spacing
         self.font_bmf_info = None
         self.font_version = None
         self.font_file = None
@@ -260,7 +260,7 @@ class EasyDisplay:
         # 位图开始字节，位图数据位于文件尾，需要通过位图开始字节来确定字体数据实际位置
         self.font_start_bitmap = unpack(">I", b'\x00' + self.font_bmf_info[4:7])[0]
         # 字体大小，默认的文字字号，用于缩放方面的处理
-        self.text_size = self.font_bmf_info[7]
+        self._size = self.font_bmf_info[7]
         # 点阵所占字节，用来定位字体数据位置
         self.font_bitmap_size = self.font_bmf_info[8]
 
@@ -293,7 +293,7 @@ class EasyDisplay:
         if key is None:
             key = self._key
         if size is None:
-            size = self.text_size
+            size = self._size
         if show is None:
             show = self._show
         if clear is None:
@@ -301,18 +301,18 @@ class EasyDisplay:
         if reversion is None:
             reversion = self._reversion
         if auto_wrap is None:
-            auto_wrap = self.text_auto_wrap
+            auto_wrap = self._auto_wrap
         if half_char is None:
-            half_char = self.text_half_char
+            half_char = self._half_char
         if color_type is None:
             color_type = self._color_type
         if line_spacing is None:
-            line_spacing = self.text_line_spacing
+            line_spacing = self._line_spacing
 
         # 如果没有指定字号则使用默认字号
-        font_size = size or self.text_size
+        font_size = size or self._size
         # 记录初始的 x 位置
-        initial_x = x
+        init_x = x
 
         try:
             _seek = self._font.seek
@@ -327,30 +327,20 @@ class EasyDisplay:
             pass
 
         dp = self.display
-        if font_size == 16:
-            font_offset = 12
-        elif font_size > 16:
-            font_offset = int(font_size * 0.69) + 1
-        else:  # 例如：8px
-            font_offset = font_size // 2
+        font_offset = font_size // 2
         for char in s:
-            if char in ('M', 'O', 'Q', 'V', 'W', 'X', 'm', 'w'):  # 更好的适配英文字符
-                _half_char = False
-            else:
-                _half_char = half_char
-
-            if auto_wrap and ((x + font_offset > dp.width and ord(char) < 128 and _half_char) or
-                              (x + font_size > dp.width and (not _half_char or ord(char) > 128))):
+            if auto_wrap and ((x + font_offset > dp.width and ord(char) < 128 and half_char) or
+                              (x + font_size > dp.width and (not half_char or ord(char) > 128))):
                 y += font_size + line_spacing
-                x = initial_x
+                x = init_x
 
             # 对控制字符的处理
             if char == '\n':
                 y += font_size + line_spacing
-                x = initial_x
+                x = init_x
                 continue
             elif char == '\t':
-                x = ((x // font_size) + 1) * font_size + initial_x % font_size
+                x = ((x // font_size) + 1) * font_size + init_x % font_size
                 continue
             elif ord(char) < 16:
                 continue
@@ -369,18 +359,18 @@ class EasyDisplay:
             #   4. 彩色屏幕/放缩
             byte_data = self._reverse_byte_data(byte_data) if reversion else byte_data
             if color_type == MONO_HLSB:
-                if font_size == self.text_size:
+                if font_size == self._size:
                     dp.blit(
                         FrameBuffer(bytearray(byte_data), font_size, font_size, MONO_HLSB),
                         x, y,
                         key)
                 else:
                     dp.blit(
-                        FrameBuffer(self._HLSB_font_size(byte_data, font_size, self.text_size), font_size,
+                        FrameBuffer(self._HLSB_font_size(byte_data, font_size, self._size), font_size,
                                     font_size, MONO_HLSB), x, y, key)
             elif color_type == RGB565:
                 palette = self._calculate_palette(color, bg_color)
-                if font_size == self.text_size:
+                if font_size == self._size:
                     data = self._flatten_byte_data(byte_data, palette)
                     if self._buffer:
                         dp.blit(
@@ -390,7 +380,7 @@ class EasyDisplay:
                         dp.set_window(x, y, x + font_size - 1, y + font_size + 1)
                         dp.write_data(data)
                 else:
-                    data = self._RGB565_font_size(byte_data, font_size, palette, self.text_size)
+                    data = self._RGB565_font_size(byte_data, font_size, palette, self._size)
                     if self._buffer:
                         dp.blit(
                             FrameBuffer(data,
@@ -399,7 +389,7 @@ class EasyDisplay:
                         dp.set_window(x, y, x + font_size - 1, y + font_size + 1)
                         dp.write_data(data)
             # 英文字符半格显示
-            if ord(char) < 128 and _half_char:
+            if ord(char) < 128 and half_char:
                 x += font_offset
             else:
                 x += font_size

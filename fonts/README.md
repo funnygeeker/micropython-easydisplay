@@ -16,7 +16,7 @@
 
 ### TTF 字体文件
 - `8px`：[观致8px](https://www.maoken.com/freefonts/11358.html)
-- `16px` `24px` `32px`：[HarmonyOS Sans](https://developer.harmonyos.com/cn/design/resource)
+- `16px` `24px` `32px`：[Unifont](https://unifoundry.com/)
 
 ### 制作 BMF 字体文件
 - [https://github.com/AntonVanke/MicroPython-uFont-Tools](https://github.com/AntonVanke/MicroPython-uFont-Tools)
@@ -41,7 +41,7 @@
 
 ### TTF Font File
 - `8px`：[观致8px](https://www.maoken.com/freefonts/11358.html)
-- `16px` `24px` `32px`：[HarmonyOS Sans](https://developer.harmonyos.com/cn/design/resource)
+- `16px` `24px` `32px`：[Unifont](https://unifoundry.com/)
 
 ### Create BMF Font Files
 - [https://github.com/AntonVanke/MicroPython-uFont-Tools](https://github.com/AntonVanke/MicroPython-uFont-Tools)
