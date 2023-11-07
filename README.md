@@ -20,6 +20,9 @@ The following are the display effects of version `2.0`.
 ### Usage
 - Please refer to the source code comments.（The comments section is written in Chinese and may need translation in order to read.）
 
+### Note
+For images in the `dat` format, make sure that they do not exceed the screen display area when using non-framebuffer driver modes. Otherwise, the image may not be displayed correctly.
+
 ### Example Code
 ```python
 # This is an example of usage
