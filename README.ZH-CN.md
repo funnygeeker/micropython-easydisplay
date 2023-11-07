@@ -7,7 +7,9 @@
 
 ### 显示效果
 以下为 `2.0` 版本的显示效果
-[image]
+![IMG_20231107_004232](https://github.com/funnygeeker/micropython-easydisplay/assets/96659329/94c3c17b-ef7c-4358-a74c-ed0966826030)
+![IMG_20231107_004226](https://github.com/funnygeeker/micropython-easydisplay/assets/96659329/e765b55a-45bb-486a-b15e-5161b4d876fa)
+![IMG_20231107_004229](https://github.com/funnygeeker/micropython-easydisplay/assets/96659329/f82910c4-b515-4ffd-a00c-9eafffcbb0bf)
 
 ### 项目特点
 - 可以通过导入 `bmf` 字体文件，显示非 `ASCII` 字符，比如：中文 和 特殊符号
