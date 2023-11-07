@@ -66,7 +66,6 @@ GMCTRN1 = const(0xE1)
 
 ROTATIONS = [0x00, 0x60, 0xC0, 0xA0]  # 旋转方向
 
-
 BLACK = const(0x0000)
 BLUE = const(0x001F)
 RED = const(0xF800)
@@ -277,9 +276,10 @@ class ST7735:
             x1 (int): column end address
             y1 (int): row end address
         """
-        self._set_columns(x0, x1)
-        self._set_rows(y0, y1)
-        self._write(RAMWR)
+        if x0 < self.width and y0 < self.height:
+            self._set_columns(x0, x1)
+            self._set_rows(y0, y1)
+            self._write(RAMWR)
 
     def clear(self):
         """

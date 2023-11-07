@@ -348,9 +348,10 @@ class ST7789:
             x1 (int): column end address
             y1 (int): row end address
         """
-        self._set_columns(x0, x1)
-        self._set_rows(y0, y1)
-        self._write(ST7789_RAMWR)
+        if x0 < self.width and y0 < self.height:
+            self._set_columns(x0, x1)
+            self._set_rows(y0, y1)
+            self._write(ST7789_RAMWR)
 
     def clear(self):
         """

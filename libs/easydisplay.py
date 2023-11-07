@@ -377,7 +377,7 @@ class EasyDisplay:
                             FrameBuffer(data, font_size, font_size,
                                         RGB565), x, y, key)
                     else:
-                        dp.set_window(x, y, x + font_size - 1, y + font_size + 1)
+                        dp.set_window(x, y, x + font_size - 1, y + font_size)
                         dp.write_data(data)
                 else:
                     data = self._RGB565_font_size(byte_data, font_size, palette, self._size)
@@ -386,7 +386,7 @@ class EasyDisplay:
                             FrameBuffer(data,
                                         font_size, font_size, RGB565), x, y, key)
                     else:
-                        dp.set_window(x, y, x + font_size - 1, y + font_size + 1)
+                        dp.set_window(x, y, x + font_size - 1, y + font_size)
                         dp.write_data(data)
             # 英文字符半格显示
             if ord(char) < 128 and half_char:
@@ -450,7 +450,7 @@ class EasyDisplay:
                     if reversion:  # New
                         color, bg_color = bg_color, color
                     palette = self._calculate_palette(color, bg_color)  # 计算调色板
-                    dp.set_window(x, y, x + _width - 1, y + _height + 1)  # 设置窗口
+                    dp.set_window(x, y, x + _width - 1, y + _height)  # 设置窗口
                     data = f_read(buffer_size)
                     write_data = dp.write_data
                     while data:
@@ -522,7 +522,7 @@ class EasyDisplay:
                         except AttributeError:
                             pass
                 else:  # 直接驱动
-                    dp.set_window(x, y, x + _width - 1, y + _height + 1)  # 设置窗口
+                    dp.set_window(x, y, x + _width - 1, y + _height)  # 设置窗口
                     buffer = bytearray(_width * 2)
                     for _y in r_height:  # 逐行显示图片
                         for _x in r_width:
@@ -622,7 +622,7 @@ class EasyDisplay:
                         buffer = bytearray(_width * 2)
                         self_buf = self._buffer
                         if not self_buf:
-                            dp.set_window(x, y, x + _width - 1, y + _height + 1)  # 设置窗口
+                            dp.set_window(x, y, x + _width - 1, y + _height)  # 设置窗口
                         r_width = range(_width)
                         r_height = range(_height)
                         for _y in r_height:
@@ -716,7 +716,7 @@ class EasyDisplay:
                         size = self.BUFFER_SIZE * 10
                         data = f_read(size)
                         dp_write = self.display.write_data
-                        self.display.set_window(x, y, x + _width - 1, y + _height + 1)
+                        self.display.set_window(x, y, x + _width - 1, y + _height)
                         while data:
                             dp_write(data)
                             data = f_read(size)
