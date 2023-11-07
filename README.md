@@ -33,7 +33,7 @@ from libs.easydisplay import EasyDisplay
 spi = SPI(1, baudrate=20000000, polarity=0, phase=0, sck=Pin(19), mosi=Pin(18))
 dp = st7735_buf.ST7735(width=160, height=128, spi=spi, cs=0, dc=1, rst=11, rotation=1)
 ed = EasyDisplay(display=dp, font="/text_lite_16px_2311.v3.bmf", show=True, color=0xFFFF, clear=True,
-                 color_type=framebuf.RGB565, text_half_char=True, text_auto_wrap=True)
+                 color_type=framebuf.RGB565, auto_wrap=True)
 
 ed.bmp("/img/test.bmp", 0, 0)
 time.sleep(3)
