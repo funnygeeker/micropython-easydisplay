@@ -65,14 +65,14 @@ class EasyDisplay:
         self._key = key
         self._show = show
         self._clear = clear
-        self._reversion = reversion
-        self._color_type = color_type
-        self._color = color
-        self._bg_color = bg_color
-        self._size = size
-        self._auto_wrap = auto_wrap
-        self._half_char = half_char
-        self._line_spacing = line_spacing
+        self.reversion = reversion
+        self.color_type = color_type
+        self.color = color
+        self.bg_color = bg_color
+        self.font_size = size
+        self.auto_wrap = auto_wrap
+        self.half_char = half_char
+        self.line_spacing = line_spacing
         self.font_bmf_info = None
         self.font_version = None
         self.font_file = None
@@ -260,7 +260,7 @@ class EasyDisplay:
         # 位图开始字节，位图数据位于文件尾，需要通过位图开始字节来确定字体数据实际位置
         self.font_start_bitmap = unpack(">I", b'\x00' + self.font_bmf_info[4:7])[0]
         # 字体大小，默认的文字字号，用于缩放方面的处理
-        self._size = self.font_bmf_info[7]
+        self.font_size = self.font_bmf_info[7]
         # 点阵所占字节，用来定位字体数据位置
         self.font_bitmap_size = self.font_bmf_info[8]
 
@@ -287,30 +287,30 @@ class EasyDisplay:
             line_spacing: 行间距
         """
         if color is None:
-            color = self._color
+            color = self.color
         if bg_color is None:
-            bg_color = self._bg_color
+            bg_color = self.bg_color
         if key is None:
             key = self._key
         if size is None:
-            size = self._size
+            size = self.font_size
         if show is None:
             show = self._show
         if clear is None:
             clear = self._clear
         if reversion is None:
-            reversion = self._reversion
+            reversion = self.reversion
         if auto_wrap is None:
-            auto_wrap = self._auto_wrap
+            auto_wrap = self.auto_wrap
         if half_char is None:
-            half_char = self._half_char
+            half_char = self.half_char
         if color_type is None:
-            color_type = self._color_type
+            color_type = self.color_type
         if line_spacing is None:
-            line_spacing = self._line_spacing
+            line_spacing = self.line_spacing
 
         # 如果没有指定字号则使用默认字号
-        font_size = size or self._size
+        font_size = size or self.font_size
         # 记录初始的 x 位置
         init_x = x
 
@@ -359,18 +359,18 @@ class EasyDisplay:
             #   4. 彩色屏幕/放缩
             byte_data = self._reverse_byte_data(byte_data) if reversion else byte_data
             if color_type == MONO_HLSB:
-                if font_size == self._size:
+                if font_size == self.font_size:
                     dp.blit(
                         FrameBuffer(bytearray(byte_data), font_size, font_size, MONO_HLSB),
                         x, y,
                         key)
                 else:
                     dp.blit(
-                        FrameBuffer(self._HLSB_font_size(byte_data, font_size, self._size), font_size,
+                        FrameBuffer(self._HLSB_font_size(byte_data, font_size, self.font_size), font_size,
                                     font_size, MONO_HLSB), x, y, key)
             elif color_type == RGB565:
                 palette = self._calculate_palette(color, bg_color)
-                if font_size == self._size:
+                if font_size == self.font_size:
                     data = self._flatten_byte_data(byte_data, palette)
                     if self._buffer:
                         dp.blit(
@@ -380,7 +380,7 @@ class EasyDisplay:
                         dp.set_window(x, y, x + font_size - 1, y + font_size - 1)
                         dp.write_data(data)
                 else:
-                    data = self._RGB565_font_size(byte_data, font_size, palette, self._size)
+                    data = self._RGB565_font_size(byte_data, font_size, palette, self.font_size)
                     if self._buffer:
                         dp.blit(
                             FrameBuffer(data,
@@ -430,13 +430,13 @@ class EasyDisplay:
         if clear is None:
             clear = self._clear
         if reversion is None:
-            reversion = self._reversion
+            reversion = self.reversion
         if color_type is None:
-            color_type = self._color_type
+            color_type = self.color_type
         if color is None:
-            color = self._color
+            color = self.color
         if bg_color is None:
-            bg_color = self._bg_color
+            bg_color = self.bg_color
         if clear:  # 清屏
             self.clear()
         dp = self.display
@@ -577,13 +577,13 @@ class EasyDisplay:
         if clear is None:
             clear = self._clear
         if reversion is None:
-            reversion = self._reversion
+            reversion = self.reversion
         if color_type is None:
-            color_type = self._color_type
+            color_type = self.color_type
         if color is None:
-            color = self._color
+            color = self.color
         if bg_color is None:
-            bg_color = self._bg_color
+            bg_color = self.bg_color
         with open(file, 'rb') as f:
             f_read = f.read
             f_rinto = f.readinto
