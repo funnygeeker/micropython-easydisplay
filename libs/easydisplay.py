@@ -69,10 +69,11 @@ class EasyDisplay:
         self.color_type = color_type
         self.color = color
         self.bg_color = bg_color
-        self.font_size = size
+        self.size = size
         self.auto_wrap = auto_wrap
         self.half_char = half_char
         self.line_spacing = line_spacing
+        self.font_size = None
         self.font_bmf_info = None
         self.font_version = None
         self.font_file = None
@@ -293,7 +294,7 @@ class EasyDisplay:
         if key is None:
             key = self._key
         if size is None:
-            size = self.font_size
+            size = self.size
         if show is None:
             show = self._show
         if clear is None:
