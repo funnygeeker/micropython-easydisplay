@@ -26,6 +26,7 @@ For images in the `dat` format, make sure that they do not exceed the screen dis
 ### Example Code
 ```python
 # This is an example of usage
+import time
 import framebuf
 from machine import SPI, Pin
 from drivers import st7735_buf
