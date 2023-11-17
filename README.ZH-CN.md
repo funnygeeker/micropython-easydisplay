@@ -1,4 +1,4 @@
-[English (英语)](https://github.com/funnygeeker/micropython-easydisplay/blob/main/README.md)
+[English (英语)](./README.md)
 
 # micropython-easydisplay
 - 适用于 `Micropython` 的：高通用性，多功能，纯 `Micropython` 实现的显示库
