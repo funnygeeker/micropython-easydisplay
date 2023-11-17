@@ -1,4 +1,4 @@
-[简体中文 (Chinese)](https://github.com/funnygeeker/micropython-easydisplay/blob/main/README.ZH-CN.md)
+[简体中文 (Chinese)](./README.ZH-CN.md)
 
 # micropython-easydisplay
 - A display library for `Micropython`: high versatility, multifunctionality, implemented purely in `Micropython`.
@@ -26,7 +26,6 @@ For images in the `dat` format, make sure that they do not exceed the screen dis
 ### Example Code
 ```python
 # This is an example of usage
-import time
 import framebuf
 from machine import SPI, Pin
 from drivers import st7735_buf
