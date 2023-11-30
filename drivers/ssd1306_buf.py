@@ -23,11 +23,10 @@ SET_PRECHARGE = const(0xD9)
 SET_VCOM_DESEL = const(0xDB)
 SET_CHARGE_PUMP = const(0x8D)
 
-
 # Subclassing FrameBuffer provides support for graphics primitives
 # http://docs.micropython.org/en/latest/pyboard/library/framebuf.html
 class SSD1306(framebuf.FrameBuffer):
-    def __init__(self, width, height, external_vcc):
+    def __init__(self, width, height, external_vcc, rotate=0):
         self.width = width
         self.height = height
         self.external_vcc = external_vcc
@@ -35,30 +34,27 @@ class SSD1306(framebuf.FrameBuffer):
         self.buffer = bytearray(self.pages * self.width)
         super().__init__(self.buffer, self.width, self.height, framebuf.MONO_VLSB)
         self.init_display()
+        self.rotate(rotate)
 
     def init_display(self):
         for cmd in (
                 SET_DISP | 0x00,  # off
                 # address setting
-                SET_MEM_ADDR,
-                0x00,  # horizontal
+                SET_MEM_ADDR, 0x00,  # horizontal
                 # resolution and layout
                 SET_DISP_START_LINE | 0x00,
                 SET_SEG_REMAP | 0x01,  # column addr 127 mapped to SEG0
                 SET_MUX_RATIO,
                 self.height - 1,
                 SET_COM_OUT_DIR | 0x08,  # scan from COM[N] to COM0
-                SET_DISP_OFFSET,
-                0x00,
+                SET_DISP_OFFSET, 0x00,
                 SET_COM_PIN_CFG,
                 0x02 if self.width > 2 * self.height else 0x12,
                 # timing and driving scheme
-                SET_DISP_CLK_DIV,
-                0x80,
+                SET_DISP_CLK_DIV, 0x80,
                 SET_PRECHARGE,
                 0x22 if self.external_vcc else 0xF1,
-                SET_VCOM_DESEL,
-                0x30,  # 0.83*Vcc
+                SET_VCOM_DESEL, 0x30,  # 0.83*Vcc
                 # display
                 SET_CONTRAST,
                 0xFF,  # maximum
@@ -83,7 +79,37 @@ class SSD1306(framebuf.FrameBuffer):
         self.write_cmd(SET_CONTRAST)
         self.write_cmd(contrast)
 
+    def rotate(self, rotate):
+        """
+        设置显示旋转
+
+        Args:
+            rotate(int):
+                - 0-Portrait
+                - 1-Upper right printing left (backwards) (X Flip)
+                - 2-Inverted Portrait
+                - 3-Lower left printing up (backwards) (Y Flip)
+        """
+        rotate %= 4
+        mir_v = False
+        mir_h = False
+        if rotate == 0:
+            mir_v = True
+            mir_h = True
+        elif rotate == 1:
+            mir_h = True
+        elif rotate == 2:
+            pass
+        elif rotate == 3:
+            mir_v = True
+        self.write_cmd(SET_SEG_REMAP | (0x01 if mir_v else 0x00))
+        self.write_cmd(SET_COM_OUT_DIR | (0x08 if mir_h else 0x00))
+        self.show()
+
     def invert(self, invert):
+        """
+        Invert mode, If true, switch to invert mode (black-on-white), else normal mode (white-on-black)
+        """
         self.write_cmd(SET_NORM_INV | (invert & 1))
 
     def show(self):
@@ -110,6 +136,45 @@ class SSD1306(framebuf.FrameBuffer):
         """
         self.contrast(value)
 
+    def circle(self, x, y , radius, c, section=100):
+        """
+        画圆
+
+        Args:
+            c: 颜色
+            x: 中心 x 坐标
+            y: 中心 y 坐标
+            radius: 半径
+            section: 分段
+        """
+        arr = []
+        for m in range(section + 1):
+            _x = round(radius * math.cos((2 * math.pi / section) * m - math.pi) + x)
+            _y = round(radius * math.sin((2 * math.pi / section) * m - math.pi) + y)
+            arr.append([_x, _y])
+        for i in range(len(arr) - 1):
+            self.line(*arr[i], *arr[i + 1], c)
+
+    def fill_circle(self, x, y, radius, c):
+        """
+        画填充圆
+
+        Args:
+            c: 颜色
+            x: 中心 x 坐标
+            y: 中心 y 坐标
+            radius: 半径
+        """
+        rsq = radius * radius
+        for _x in range(radius):
+            _y = int(math.sqrt(rsq - _x * _x))  # 计算 y 坐标
+            y0 = y - _y
+            end_y = y0 + _y * 2
+            y0 = max(0, min(y0, self.height))  # 将 y0 限制在画布的范围内
+            length = abs(end_y - y0) + 1
+            self.vline(x + _x, y0, length, c)  # 绘制左右两侧的垂直线
+            self.vline(x - _x, y0, length, c)
+
 
 class SSD1306_I2C(SSD1306):
     def __init__(self, width, height, i2c, addr=0x3C, external_vcc=False):
@@ -128,44 +193,6 @@ class SSD1306_I2C(SSD1306):
         self.write_list[1] = buf
         self.i2c.writevto(self.addr, self.write_list)
 
-    def circle(self, center, radius, c, section=100):
-        """
-        画圆
-
-        Args:
-            c: 颜色
-            center: 中心(x, y)
-            radius: 半径
-            section: 分段
-        """
-        arr = []
-        for m in range(section + 1):
-            x = round(radius * math.cos((2 * math.pi / section) * m - math.pi) + center[0])
-            y = round(radius * math.sin((2 * math.pi / section) * m - math.pi) + center[1])
-            arr.append([x, y])
-        for i in range(len(arr) - 1):
-            self.line(*arr[i], *arr[i + 1], c)
-
-    def fill_circle(self, center, radius, c):
-        """
-        画填充圆
-
-        Args:
-            c: 颜色
-            center: 中心(x, y)
-            radius: 半径
-        """
-        rsq = radius * radius
-        for x in range(radius):
-            y = int(math.sqrt(rsq - x * x))  # 计算 y 坐标
-            y0 = center[1] - y
-            end_y = y0 + y * 2
-            y0 = max(0, min(y0, self.height))  # 将 y0 限制在画布的范围内
-            length = abs(end_y - y0) + 1
-            self.vline(center[0] + x, y0, length, c)  # 绘制左右两侧的垂直线
-            self.vline(center[0] - x, y0, length, c)
-
-
 
 class SSD1306_SPI(SSD1306):
     def __init__(self, width, height, spi, dc, res, cs, external_vcc=False):
@@ -178,7 +205,6 @@ class SSD1306_SPI(SSD1306):
         self.res = res
         self.cs = cs
         import time
-
         self.res(1)
         time.sleep_ms(1)
         self.res(0)
@@ -201,40 +227,3 @@ class SSD1306_SPI(SSD1306):
         self.cs(0)
         self.spi.write(buf)
         self.cs(1)
-
-    def circle(self, center, radius, c, section=100):
-        """
-        画圆
-
-        Args:
-            c: 颜色
-            center: 中心(x, y)
-            radius: 半径
-            section: 分段
-        """
-        arr = []
-        for m in range(section + 1):
-            x = round(radius * math.cos((2 * math.pi / section) * m - math.pi) + center[0])
-            y = round(radius * math.sin((2 * math.pi / section) * m - math.pi) + center[1])
-            arr.append([x, y])
-        for i in range(len(arr) - 1):
-            self.line(*arr[i], *arr[i + 1], c)
-
-    def fill_circle(self, center, radius, c):
-        """
-        画填充圆
-
-        Args:
-            c: 颜色
-            center: 中心(x, y)
-            radius: 半径
-        """
-        rsq = radius * radius
-        for x in range(radius):
-            y = int(math.sqrt(rsq - x * x))  # 计算 y 坐标
-            y0 = center[1] - y
-            end_y = y0 + y * 2
-            y0 = max(0, min(y0, self.height))  # 将 y0 限制在画布的范围内
-            length = abs(end_y - y0) + 1
-            self.vline(center[0] + x, y0, length, c)  # 绘制左右两侧的垂直线
-            self.vline(center[0] - x, y0, length, c)

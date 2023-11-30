@@ -1,7 +1,7 @@
 # Github: https://github.com/funnygeeker/micropython-easydisplay
 # Author: funnygeeker
 # Licence: MIT
-# Date: 2023/11/7
+# Date: 2023/11/30
 #
 # 参考项目:
 # https://github.com/AntonVanke/micropython-ufont
@@ -26,7 +26,7 @@ class EasyDisplay:
                  key: int = -1,
                  show: bool = None,
                  clear: bool = None,
-                 reversion: bool = False,
+                 invert: bool = False,
                  color_type=RGB565,
                  color: int = 0xFFFF,
                  bg_color: int = 0,
@@ -44,7 +44,7 @@ class EasyDisplay:
             key: 指定的颜色将被视为透明（仅适用于 Framebuffer 模式）
             show: 立即显示（仅适用于 Framebuffer 模式）
             clear: 清理屏幕
-            reversion: 反转颜色
+            invert: 反转颜色
             color_type: 图像格式，RGB565 屏幕用 framebuf.RGB565，MONO_HLSB 屏幕用 framebuf.MONO_HLSB
             color: 图像主体颜色（仅彩色屏幕显示黑白图像时生效）
             bg_color: 图像背景颜色（仅彩色屏幕显示黑白图像时生效）
@@ -65,7 +65,7 @@ class EasyDisplay:
         self._key = key
         self._show = show
         self._clear = clear
-        self.reversion = reversion
+        self.invert = invert
         self.color_type = color_type
         self.color = color
         self.bg_color = bg_color
@@ -88,6 +88,15 @@ class EasyDisplay:
         清屏
         """
         self.display.fill(0)
+
+    def show(self):
+        """
+        显示
+        """
+        try:
+            self.display.show()
+        except AttributeError:
+            pass
 
     @staticmethod
     def _calculate_palette(color, bg_color) -> tuple:
@@ -268,7 +277,7 @@ class EasyDisplay:
     def text(self, s: str, x: int, y: int,
              color: int = 0xFFFF, bg_color: int = 0, size: int = None,
              half_char: bool = None, auto_wrap: bool = None, show: bool = None, clear: bool = None,
-             key: bool = None, reversion: bool = None, color_type: int = None, line_spacing: int = None, *args,
+             key: bool = None, invert: bool = None, color_type: int = None, line_spacing: int = None, *args,
              **kwargs):
         """
         Args:
@@ -281,7 +290,7 @@ class EasyDisplay:
             size: 文字大小
             show: 立即显示
             clear: 清理缓冲区 / 清理屏幕
-            reversion: 逆置(MONO)
+            invert: 逆置(MONO)
             auto_wrap: 自动换行
             half_char: 半宽显示 ASCII 字符
             color_type: 色彩模式 0:MONO_HLSB 1:RGB565
@@ -299,8 +308,8 @@ class EasyDisplay:
             show = self._show
         if clear is None:
             clear = self._clear
-        if reversion is None:
-            reversion = self.reversion
+        if invert is None:
+            invert = self.invert
         if auto_wrap is None:
             auto_wrap = self.auto_wrap
         if half_char is None:
@@ -321,11 +330,8 @@ class EasyDisplay:
             raise AttributeError("The font file is not loaded... Did you forget?")
 
         # 清屏
-        try:
-            self.display.clear() if clear else 0
-        except AttributeError:
-            # print("请自行调用 display.fill() 清屏")
-            pass
+        if clear:
+            self.clear()
 
         dp = self.display
         font_offset = font_size // 2
@@ -358,7 +364,7 @@ class EasyDisplay:
             #   2. 黑白屏幕/放缩
             #   3. 彩色屏幕/无放缩
             #   4. 彩色屏幕/放缩
-            byte_data = self._reverse_byte_data(byte_data) if reversion else byte_data
+            byte_data = self._reverse_byte_data(byte_data) if invert else byte_data
             if color_type == MONO_HLSB:
                 if font_size == self.font_size:
                     dp.blit(
@@ -400,7 +406,7 @@ class EasyDisplay:
         except AttributeError:
             pass
 
-    def pbm(self, file: str, x, y, key: int = -1, show: bool = None, clear: bool = None, reversion: bool = False,
+    def pbm(self, file: str, x, y, key: int = -1, show: bool = None, clear: bool = None, invert: bool = False,
             color_type=RGB565, color: int = None, bg_color: int = None):
         """
         显示 pbm 图片
@@ -419,7 +425,7 @@ class EasyDisplay:
             key: 指定的颜色将被视为透明（仅适用于 Framebuffer 模式）
             show: 立即显示（仅适用于 Framebuffer 模式）
             clear: 清理屏幕
-            reversion: 反转颜色
+            invert: 反转颜色
             color_type: 图像格式，RGB565 屏幕用 framebuf.RGB565，MONO_HLSB 屏幕用 framebuf.MONO_HLSB
             color: 图像主体颜色（仅彩色屏幕显示黑白图像时生效）
             bg_color: 图像背景颜色（仅彩色屏幕显示黑白图像时生效）
@@ -430,8 +436,8 @@ class EasyDisplay:
             show = self._show
         if clear is None:
             clear = self._clear
-        if reversion is None:
-            reversion = self.reversion
+        if invert is None:
+            invert = self.invert
         if color_type is None:
             color_type = self.color_type
         if color is None:
@@ -448,21 +454,21 @@ class EasyDisplay:
             if file_format == b"P4\n":  # P4 位图 二进制
                 if self._buffer == 0:  # 直接驱动
                     buffer_size = self.BUFFER_SIZE
-                    if reversion:  # New
+                    if invert:  # New
                         color, bg_color = bg_color, color
                     palette = self._calculate_palette(color, bg_color)  # 计算调色板
                     dp.set_window(x, y, x + _width - 1, y + _height - 1)  # 设置窗口
                     data = f_read(buffer_size)
                     write_data = dp.write_data
                     while data:
-                        # if reversion:  # Old
+                        # if invert:  # Old
                         #     data = bytes([~b & 0xFF for b in data])
                         buffer = self._flatten_byte_data(data, palette)
                         write_data(buffer)
                         data = f_read(buffer_size)  # 30 * 8 = 240, 理论上 ESP8266 的内存差不多能承载这个大小的彩色图片
                 else:  # Framebuffer 模式
                     data = bytearray(f_read())
-                    if reversion:
+                    if invert:
                         # data = bytearray([~b & 0xFF for b in data])  # Old
                         color, bg_color = bg_color, color  # New
                         # data = self._reverse_byte_data(data)
@@ -499,7 +505,7 @@ class EasyDisplay:
                         for _x in r_width:
                             f_rinto(color_bytearray)
                             r, g, b = color_bytearray[0], color_bytearray[1], color_bytearray[2]
-                            if reversion:
+                            if invert:
                                 r = 255 - r
                                 g = 255 - g
                                 b = 255 - b
@@ -529,7 +535,7 @@ class EasyDisplay:
                         for _x in r_width:
                             color_bytearray = f_read(3)
                             r, g, b = color_bytearray[0], color_bytearray[1], color_bytearray[2]
-                            if reversion:
+                            if invert:
                                 r = 255 - r
                                 g = 255 - g
                                 b = 255 - b
@@ -551,7 +557,7 @@ class EasyDisplay:
             else:
                 raise TypeError("Unsupported File Format Type.")
 
-    def bmp(self, file: str, x, y, key: int = -1, show: bool = None, clear: bool = None, reversion: bool = False,
+    def bmp(self, file: str, x, y, key: int = -1, show: bool = None, clear: bool = None, invert: bool = False,
             color_type=RGB565, color: int = None, bg_color: int = None):
         """
         显示 bmp 图片
@@ -566,7 +572,7 @@ class EasyDisplay:
             key: 指定的颜色将被视为透明（仅适用于 Framebuffer 模式）
             show: 立即显示（仅适用于 Framebuffer 模式）
             clear: 清理屏幕
-            reversion: 反转颜色
+            invert: 反转颜色
             color_type: 图像格式，RGB565 屏幕用 framebuf.RGB565，MONO_HLSB 屏幕用 framebuf.MONO_HLSB
             color: 图像主体颜色（仅彩色图片显示以黑白形式显示时生效）
             bg_color: 图像背景颜色（仅彩色图片显示以黑白形式显示时生效）
@@ -577,8 +583,8 @@ class EasyDisplay:
             show = self._show
         if clear is None:
             clear = self._clear
-        if reversion is None:
-            reversion = self.reversion
+        if invert is None:
+            invert = self.invert
         if color_type is None:
             color_type = self.color_type
         if color is None:
@@ -636,7 +642,7 @@ class EasyDisplay:
                             for _x in r_width:
                                 f_rinto(_color_bytearray)
                                 r, g, b = _color_bytearray[2], _color_bytearray[1], _color_bytearray[0]
-                                if reversion:  # 颜色反转
+                                if invert:  # 颜色反转
                                     r = 255 - r
                                     g = 255 - g
                                     b = 255 - b
