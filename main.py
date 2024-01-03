@@ -1,6 +1,5 @@
 # 这是一个使用示例 This is an example of usage
 import time
-import framebuf
 from machine import SPI, Pin
 from driver import st7735_buf
 from lib.easydisplay import EasyDisplay
