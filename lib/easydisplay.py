@@ -115,6 +115,13 @@ class EasyDisplay:
             pass
 
     @staticmethod
+    def rgb565_color(r, g, b):
+        """
+        Convert red, green and blue values (0-255) into a 16-bit 565 encoding.
+        """
+        return (r & 0xf8) << 8 | (g & 0xfc) << 3 | b >> 3
+
+    @staticmethod
     def _calculate_palette(color, bg_color) -> tuple:
         """
         通过 主体颜色 和 背景颜色 计算调色板
@@ -686,7 +693,7 @@ class EasyDisplay:
                 raise TypeError("Unsupported File Format Type.")
 
     def bmp(self, file, x, y, key: int = -1, show: bool = None, clear: bool = None, invert: bool = False,
-            color_type="RGB565", color: int = None, bg_color: int = None):
+            color_type=None, color: int = None, bg_color: int = None):
         """
         显示 bmp 图片
 
@@ -753,7 +760,7 @@ class EasyDisplay:
             try:
                 dp_color = dp.color
             except AttributeError:
-                pass
+                dp_color = self.rgb565_color
             dp_pixel = dp.pixel
             if f_read(2) == b'BM':  # 检查文件头
                 dummy = f_read(8)  # 文件大小占四个字节，文件作者占四个字节，file size(4), creator bytes(4)
