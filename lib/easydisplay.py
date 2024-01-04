@@ -513,7 +513,7 @@ class EasyDisplay:
         self.pbm(*args, **kwargs)
 
     def pbm(self, file, x, y, key: int = -1, show: bool = None, clear: bool = None, invert: bool = False,
-            color_type="RGB565", color: int = None, bg_color: int = None):
+            color_type=None, color: int = None, bg_color: int = None):
         """
         显示 pbm / ppm 图片
 
