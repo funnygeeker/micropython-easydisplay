@@ -1,7 +1,7 @@
 # Github: https://github.com/funnygeeker/micropython-easydisplay
 # Author: funnygeeker
 # Licence: MIT
-# Date: 2023/1/3
+# Date: 2023/1/19
 #
 # 参考项目:
 # https://github.com/AntonVanke/micropython-ufont
@@ -16,10 +16,17 @@
 
 from io import BytesIO
 from struct import unpack
-from framebuf import FrameBuffer, MONO_HLSB, RGB565
+from framebuf import FrameBuffer, MONO_VLSB, MONO_HLSB, MONO_HMSB, RGB565, GS2_HMSB, GS4_HMSB, GS8
 
 
 class EasyDisplay:
+    MONO_VLSB = MONO_VLSB
+    MONO_HLSB = MONO_HLSB
+    MONO_HMSB = MONO_HMSB
+    RGB565 = RGB565
+    GS2_HMSB = GS2_HMSB
+    GS4_HMSB = GS4_HMSB
+    GS8 = GS8
     BUFFER_SIZE = 32
 
     def __init__(self, display,
@@ -98,6 +105,47 @@ class EasyDisplay:
         self.font_bitmap_size = None
         if font:
             self.load_font(font)
+
+    # Framebuffer Function: https://docs.micropython.org/en/latest/library/framebuf.html
+    def fill(self, *args, **kwargs):
+        self.display.fill(*args, **kwargs)
+
+    def pixel(self, *args, **kwargs):
+        self.display.pixel(*args, **kwargs)
+
+    def hline(self, *args, **kwargs):
+        self.display.hline(*args, **kwargs)
+
+    def vline(self, *args, **kwargs):
+        self.display.vline(*args, **kwargs)
+
+    def line(self, *args, **kwargs):
+        self.display.line(*args, **kwargs)
+
+    def rect(self, *args, **kwargs):
+        self.display.rect(*args, **kwargs)
+
+    def fill_rect(self, *args, **kwargs):
+        self.display.fill_rect(*args, **kwargs)
+
+    def scroll(self, *args, **kwargs):
+        self.display.scroll(*args, **kwargs)
+
+    def blit(self, *args, **kwargs):
+        self.display.blit(*args, **kwargs)
+
+    def ellipse(self, *args, **kwargs):
+        self.display.ellipse(*args, **kwargs)
+
+    def poly(self, *args, **kwargs):
+        self.display.poly(*args, **kwargs)
+
+    # Only partial screen driver support
+    def circle(self, *args, **kwargs):
+        self.display.circle(*args, **kwargs)
+
+    def fill_circle(self, *args, **kwargs):
+        self.display.fill_circle(*args, **kwargs)
 
     def clear(self):
         """
