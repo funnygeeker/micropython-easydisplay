@@ -1,6 +1,6 @@
+import time
 import math
 import framebuf
-import utime as time
 from machine import Pin
 from micropython import const
 
@@ -251,12 +251,13 @@ class SH1106_I2C(SH1106):
                  rotate=0, external_vcc=False, delay=0):
         self.i2c = i2c
         self.addr = addr
-        if res is not None:
+        if res is None:
+            self.res = None
+        else:
             self.res = Pin(res, Pin.OUT, Pin.PULL_DOWN)
+
         self.temp = bytearray(2)
         self.delay = delay
-        if res is not None:
-            res.init(res.OUT, value=1)
         super().__init__(width, height, external_vcc, rotate)
 
     def write_cmd(self, cmd):
@@ -275,7 +276,9 @@ class SH1106_SPI(SH1106):
     def __init__(self, width, height, spi, dc, res=None, cs=None,
                  rotate=0, external_vcc=False, delay=0):
         self.spi = spi
-        if res is not None:
+        if res is None:
+            self.res = res
+        else:
             self.res = Pin(res, Pin.OUT, Pin.PULL_DOWN)
         self.dc = Pin(dc, Pin.OUT, Pin.PULL_DOWN)
         if cs is None:
