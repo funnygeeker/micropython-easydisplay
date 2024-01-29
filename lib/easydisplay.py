@@ -635,7 +635,32 @@ class EasyDisplay:
             _width, _height = [int(value) for value in f.readline().split()]  # 获取图片的宽度和高度
             f_read = f.read
             if file_format == b"P4\n":  # P4 位图 二进制
-                if self._buffer == 0:  # 直接驱动
+                if self._buffer:  # Framebuffer 模式
+                    data = bytearray(f_read())
+                    if invert:
+                        # data = bytearray([~b & 0xFF for b in data])  # Old
+                        color, bg_color = bg_color, color  # New
+                        # data = self._reverse_byte_data(data)
+                    if color_type == "MONO":
+                        fbuf = FrameBuffer(data, _width, _height, MONO_HLSB)
+                        palette = FrameBuffer(bytearray(1), 2, 1, MONO_HLSB)
+                        palette.pixel(1, 0, color)
+                        palette.pixel(0, 0, bg_color)
+                        dp.blit(fbuf, x, y, key, palette)
+                    elif color_type == "RGB565":
+                        fbuf = FrameBuffer(data, _width, _height, MONO_HLSB)
+                        palette = FrameBuffer(bytearray(2 * 2), 2, 1, RGB565)
+                        palette.pixel(1, 0, color)
+                        palette.pixel(0, 0, bg_color)
+                        # palette = FrameBuffer(bytearray((color, bg_color)), 2, 1, RGB565)
+                        dp.blit(fbuf, x, y, key, palette)
+                    if show:  # 立即显示
+                        try:
+                            dp.show()
+                        except AttributeError:
+                            pass
+
+                else:  # 直接驱动
                     buffer_size = self.BUFFER_SIZE
                     if invert:  # New
                         color, bg_color = bg_color, color
@@ -649,27 +674,6 @@ class EasyDisplay:
                         buffer = self._flatten_byte_data(data, palette)
                         write_data(buffer)
                         data = f_read(buffer_size)  # 30 * 8 = 240, 理论上 ESP8266 的内存差不多能承载这个大小的彩色图片
-                else:  # Framebuffer 模式
-                    data = bytearray(f_read())
-                    if invert:
-                        # data = bytearray([~b & 0xFF for b in data])  # Old
-                        color, bg_color = bg_color, color  # New
-                        # data = self._reverse_byte_data(data)
-                    if color_type == "MONO":
-                        fbuf = FrameBuffer(data, _width, _height, MONO_HLSB)
-                        dp.blit(fbuf, x, y, key)
-                    elif color_type == "RGB565":
-                        fbuf = FrameBuffer(data, _width, _height, MONO_HLSB)
-                        palette = FrameBuffer(bytearray(2 * 2), 2, 1, RGB565)
-                        palette.pixel(1, 0, color)
-                        palette.pixel(0, 0, bg_color)
-                        # palette = FrameBuffer(bytearray((color, bg_color)), 2, 1, RGB565)
-                        dp.blit(fbuf, x, y, key, palette)
-                    if show:  # 立即显示
-                        try:
-                            dp.show()
-                        except AttributeError:
-                            pass
 
             elif file_format == b"P6\n":  # P6 像素图 二进制
                 max_pixel_value = f.readline()  # 获取最大像素值
