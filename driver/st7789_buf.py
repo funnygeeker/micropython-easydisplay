@@ -179,7 +179,7 @@ class ST7789(framebuf.FrameBuffer):
             self.cs = Pin(cs, Pin.OUT, Pin.PULL_DOWN)
         if bl is not None:
             self.bl = PWM(Pin(bl, Pin.OUT))
-            self.bl.duty(1023)
+            self.bl.duty_u16(1023)
         else:
             self.bl = None
         self._rotate = rotate
