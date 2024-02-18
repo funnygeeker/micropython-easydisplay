@@ -1,7 +1,7 @@
 # Github: https://github.com/funnygeeker/micropython-easydisplay
 # Author: funnygeeker
 # Licence: MIT
-# Date: 2023/1/19
+# Date: 2023/2/18
 #
 # 参考项目:
 # https://github.com/AntonVanke/micropython-ufont
@@ -13,29 +13,21 @@
 # PBM文件转换：https://blog.csdn.net/jd3096/article/details/121319042
 # 灰度化、二值化：https://blog.csdn.net/li_wen01/article/details/72867057
 # Framebuffer 的 Palette: https://forum.micropython.org/viewtopic.php?t=12857
-
 from io import BytesIO
 from struct import unpack
-from framebuf import FrameBuffer, MONO_VLSB, MONO_HLSB, MONO_HMSB, RGB565, GS2_HMSB, GS4_HMSB, GS8
+from framebuf import FrameBuffer, MONO_HLSB, RGB565
 
 
 class EasyDisplay:
-    MONO_VLSB = MONO_VLSB
-    MONO_HLSB = MONO_HLSB
-    MONO_HMSB = MONO_HMSB
-    RGB565 = RGB565
-    GS2_HMSB = GS2_HMSB
-    GS4_HMSB = GS4_HMSB
-    GS8 = GS8
-    BUFFER_SIZE = 32
+    READ_SIZE = 32  # Limit the picture read size to prevent memory errors in low-performance development boards
 
     def __init__(self, display,
+                 color_type,
                  font: str = None,
                  key: int = -1,
                  show: bool = None,
                  clear: bool = None,
                  invert: bool = False,
-                 color_type="RGB565",
                  color: int = 0xFFFF,
                  bg_color: int = 0,
                  size: int = None,
@@ -47,43 +39,37 @@ class EasyDisplay:
         初始化 EasyDisplay
 
         Args:
-            display: 显示实例
-            font: 字体文件所在位置
-            key: 指定的颜色将被视为透明（仅适用于 Framebuffer 模式）
-            show: 立即显示（仅适用于 Framebuffer 模式）
-            clear: 清理屏幕
-            invert: 反转颜色
-            color_type: 图像格式，RGB565 屏幕用 "RGB565"，黑白 屏幕用 "MONO"
-            color: 图像主体颜色（仅彩色屏幕显示黑白图像时生效）
-            bg_color: 图像背景颜色（仅彩色屏幕显示黑白图像时生效）
-            size: 文本字号大小
-            auto_wrap: 文本自动换行
-            half_char： 半宽显示 ASCII 字符
-            line_spacing: 文本行间距
-
-        Args:
             display: The display instance
+                表示显示的实例
+            color_type: Color type of screen, "MONO" or "RGB565"
+                屏幕的颜色类型，"MONO" 或者 “RGB565”
             font: The location of the font file
+                字体文件位置
             key: The specified color will be treated as transparent (only applicable for Framebuffer mode)
+                指定的颜色将被视为透明（仅适用于 Framebuffer 模式）
             show: Show immediately (only applicable for Framebuffer mode)
+                立即显示（仅适用于 Framebuffer 模式）
             clear: Clear the screen
+                清理屏幕
             invert: Invert colors
+                反转颜色
             color_type: Image format, "RGB565" for RGB565 screen, "MONO" for black and white screen
+                图像格式，RGB565 屏幕用 "RGB565"，黑白 屏幕用 "MONO"
             color: The main color of the image (only effective when displaying black and white images on a color screen)
+                图像主体颜色（仅彩色屏幕显示黑白图像时生效）
             bg_color: The background color of the image (only effective when displaying black and white images on a color screen)
+                图像背景颜色（仅彩色屏幕显示黑白图像时生效）
             size: Font size
+                文本字体大小
             auto_wrap: Automatically wrap text
+                文本自动换行
             half_char: Display ASCII characters in half width
+                半宽显示 ASCII 字符
             line_spacing: Line spacing for text
+                文本行间距
         """
         self.display = display
-        try:
-            _buffer = display.buffer
-            # buffer: 驱动是否使用了帧缓冲区，False（SPI 直接驱动模式） / True（Framebuffer 模式）
-            buffer = True
-        except AttributeError:
-            buffer = False
-        self._buffer = buffer
+        self._buffer = hasattr(display, 'buffer')  # buffer: 驱动是否使用了帧缓冲区，False（SPI 直接驱动） / True（Framebuffer）
         self._font = None
         self._key = key
         self._show = show
@@ -111,7 +97,7 @@ class EasyDisplay:
         self.display.fill(*args, **kwargs)
 
     def pixel(self, *args, **kwargs):
-        self.display.pixel(*args, **kwargs)
+        return self.display.pixel(*args, **kwargs)
 
     def hline(self, *args, **kwargs):
         self.display.hline(*args, **kwargs)
@@ -149,13 +135,13 @@ class EasyDisplay:
 
     def clear(self):
         """
-        清屏
+        Clear screen
         """
         self.display.fill(0)
 
     def show(self):
         """
-        显示
+        Display
         """
         try:
             self.display.show()
@@ -169,62 +155,12 @@ class EasyDisplay:
         """
         return (r & 0xf8) << 8 | (g & 0xfc) << 3 | b >> 3
 
-    @staticmethod
-    def _calculate_palette(color, bg_color) -> tuple:
-        """
-        通过 主体颜色 和 背景颜色 计算调色板
-
-        Args:
-            color: 主体颜色
-            bg_color: 背景颜色
-
-        Calculate the color palette based on the main color and background color
-
-        Args:
-            color: Main color
-            bg_color: Background color
-        """
-        return [bg_color & 0xFF, (bg_color & 0xFF00) >> 8], [color & 0xFF, (color & 0xFF00) >> 8]
-
-    @staticmethod
-    def _flatten_byte_data(byte_data, palette) -> bytearray:
-        """
-        将 二进制 MONO 黑白图像渲染为 RGB565 彩色图像
-        Args:
-            byte_data: 图像数据
-            palette: 调色板
-
-        Returns:
-            RGB565 图像数据
-
-        Render a binary MONO black and white image as an RGB565 color image
-
-        Args:
-            byte_data: Image data
-            palette: Color palette
-
-        Returns:
-            RGB565 image data
-        """
-        _temp = []
-        r = range(7, -1, -1)
-        _t_extend = _temp.extend
-        for _byte in byte_data:
-            for _b in r:
-                _t_extend(palette[(_byte >> _b) & 0x01])
-        return bytearray(_temp)
-
     def _get_index(self, word: str) -> int:
         """
-        获取文字索引
+        Get Text Index 获取文字索引
 
         Args:
-            word: 字符
-
-        Get Text Index
-
-        Args:
-            word: Character
+            word: Character 字符
         """
         word_code = ord(word)
         start = 0x10
@@ -243,55 +179,21 @@ class EasyDisplay:
                 start = mid + 2
         return -1
 
-    @staticmethod
-    def _reverse_byte_data(byte_data) -> bytearray:
-        """
-        反转字节数据
-
-        Args:
-            byte_data: 二进制 黑白图像
-
-        Returns:
-            反转后的数据 (0->1, 1->0)
-
-        Reverse Byte Data
-
-        Args:
-            byte_data: Binary black and white image
-
-        Returns:
-            Reversed data (0->1, 1->0)
-        """
-        r = range(len(byte_data))
-        for _pixel in r:
-            byte_data[_pixel] = ~byte_data[_pixel] & 0xff
-        return byte_data
-
     # @timeit
     @staticmethod
-    def _HLSB_font_size(bytearray_data: bytearray, new_size: int, old_size: int) -> bytearray:
+    def _hlsb_font_size(bytearray_data: bytearray, new_size: int, old_size: int) -> bytearray:
         """
-        缩放 HLSB 字符
+        Scale HLSB Characters 缩放字符
 
         Args:
-            bytearray_data: 源字符数据
-            new_size: 新字符大小
-            old_size: 旧字符大小
+            bytearray_data: Source char data 源字符数据
+            new_size: New char size 新字符大小
+            old_size: Old char size 旧字符大小
 
         Returns:
-            缩放后的字符数据
-
-        Scale HLSB Characters
-
-        Args:
-            bytearray_data: Source character data
-            new_size: New character size
-            old_size: Old character size
-
-        Returns:
-            Scaled character data
+            Scaled character data 缩放后的数据
         """
-        r = range(new_size)  # 对于 micropython 来说可以提高效率
+        r = range(new_size)  # Preload functions to avoid repeated execution and improve efficiency
         if old_size == new_size:
             return bytearray_data
         _t = bytearray(new_size * ((new_size >> 3) + 1))
@@ -305,82 +207,31 @@ class EasyDisplay:
                         (bytearray_data[_old_index >> 3] >> (7 - _old_index % 8) & 1) << (7 - _row % 8))
         return _t
 
-    @staticmethod
-    def _RGB565_font_size(bytearray_data, new_size: int, palette: tuple, old_size: int) -> bytearray:
-        """
-        缩放 RGB565 字符
-
-        Args:
-            bytearray_data: 源字符数据
-            new_size: 新字符大小
-            old_size: 旧字符大小
-
-        Returns:
-            缩放后的字符数据
-
-        Scale RGB565 Characters
-
-        Args:
-            bytearray_data: Source character data
-            new_size: New character size
-            old_size: Old character size
-
-        Returns:
-            Scaled character data
-        """
-        r = range(new_size)
-        if old_size == new_size:
-            return bytearray_data
-        _t = []
-        _t_extend = _t.extend
-        _new_index = -1
-        for _col in r:
-            for _row in r:
-                if (_row % 8) == 0:
-                    _new_index += 1
-                _old_index = int(_col / (new_size / old_size)) * old_size + int(_row / (new_size / old_size))
-                _t_extend(palette[bytearray_data[_old_index // 8] >> (7 - _old_index % 8) & 1])
-        return bytearray(_t)
-
     def get_bitmap(self, word: str) -> bytes:
         """
-        获取点阵图
+        Get Dot Matrix Image 获取点阵图
 
         Args:
-            word: 单个字符
+            word: Single character 单个字符
 
         Returns:
-            bytes 字符点阵
-
-        Get Dot Matrix Image
-
-        Args:
-            word: Single character
-
-        Returns:
-            Bytes representing the dot matrix image of the character
+            Bytes representing the dot matrix image of the character 字符点阵
         """
         index = self._get_index(word)
         if index == -1:
             return b'\xff\xff\xff\xff\xff\xff\xff\xff\xf0\x0f\xcf\xf3\xcf\xf3\xff\xf3\xff\xcf\xff?\xff?\xff\xff\xff' \
-                   b'?\xff?\xff\xff\xff\xff'
+                   b'?\xff?\xff\xff\xff\xff'  # Returns the question mark icon
         self._font.seek(self.font_start_bitmap + index * self.font_bitmap_size, 0)
         return self._font.read(self.font_bitmap_size)
 
     def load_font(self, file: str):
         """
-        加载字体文件
+        Load Font File 加载字体文件
 
         Args:
-            file: 字体文件路径
-
-        Load Font File
-
-        Args:
-            file: Path to the font file
+            file: Path to the font file 文件路径
         """
         self.font_file = file
-        # 载入字体文件
         self._font = open(file, "rb")
         # 获取字体文件信息
         #  字体文件信息大小 16 byte ,按照顺序依次是
@@ -412,40 +263,35 @@ class EasyDisplay:
     def text(self, s: str, x: int, y: int,
              color: int = 0xFFFF, bg_color: int = 0, size: int = None,
              half_char: bool = None, auto_wrap: bool = None, show: bool = None, clear: bool = None,
-             key: bool = None, invert: bool = None, color_type: int = None, line_spacing: int = None, *args,
-             **kwargs):
+             key: bool = None, invert: bool = None, line_spacing: int = None, *args, **kwargs):
         """
         Args:
-            s: 字符串
-            x: 字符串 x 坐标
-            y: 字符串 y 坐标
-            color: 文字颜色 (RGB565 范围为 0-65535，MONO 范围为 0 和 大于零-通常使用 1)
-            bg_color: 文字背景颜色 (RGB565 范围为 0-65535，MONO 范围为 0 和 大于零-通常使用 1)
-            key: 透明色，当颜色与 key 相同时则透明 (仅适用于 Framebuffer 模式)
-            size: 文字大小
-            show: 立即显示
-            clear: 清理缓冲区 / 清理屏幕
-            invert: 逆置(MONO)
-            auto_wrap: 自动换行
-            half_char: 半宽显示 ASCII 字符
-            color_type: 色彩模式 "MONO" 或 "RGB565"
-            line_spacing: 行间距
-
-        Args:
             s: String
+                字符串
             x: X-coordinate of the string
+                x 坐标
             y: Y-coordinate of the string
+                y 坐标
             color: Text color (RGB565 range is 0-65535, MONO range is 0 and greater than zero - typically use 1)
-            bg_color: Text background color (RGB565 range is 0-65535, MONO range is 0 and greater than zero - typically use 1)
+                文字颜色 (RGB565 范围为 0-65535，MONO 范围为 0 和 大于零-通常使用 1)
+            bg_color: Text background color (RGB565 range is 0-65535, MONO range is 0 and greater than zero - typically use 1)\
+                文字背景颜色 (RGB565 范围为 0-65535，MONO 范围为 0 和 大于零-通常使用 1)
             key: Transparent color, when color matches key, it becomes transparent (only applicable in Framebuffer mode)
+                透明色，当颜色与 key 相同时则透明 (仅适用于 Framebuffer 模式)
             size: Text size
+                文字大小
             show: Show immediately
+                立即显示
             clear: Clear buffer / Clear screen
+                清理缓冲区 / 清理屏幕
             invert: Invert (MONO)
+                逆置(MONO)
             auto_wrap: Enable auto wrap
+                自动换行
             half_char: Display ASCII characters in half width
-            color_type: Color mode, "MONO" or "RGB565"
+                半宽显示 ASCII 字符
             line_spacing: Line spacing
+                行间距
         """
         if color is None:
             color = self.color
@@ -465,8 +311,7 @@ class EasyDisplay:
             auto_wrap = self.auto_wrap
         if half_char is None:
             half_char = self.half_char
-        if color_type is None:
-            color_type = self.color_type
+        color_type = self.color_type
         if line_spacing is None:
             line_spacing = self.line_spacing
 
@@ -478,14 +323,29 @@ class EasyDisplay:
         try:
             _seek = self._font.seek
         except AttributeError:
-            raise AttributeError("The font file is not loaded... Did you forget?")
+            raise AttributeError("The font file is not loaded... Did you forgot?")
+
+        dp = self.display
+        font_offset = font_size // 2
+
+        # 颜色反转
+        if invert:
+            color, bg_color = bg_color, color
+
+        # 配置调色板
+        if color_type == "MONO":
+            palette = FrameBuffer(bytearray(1), 2, 1, MONO_HLSB)  # MONO pixels occupy 1 byte for every 8 pixels
+        elif color_type == "RGB565":
+            palette = FrameBuffer(bytearray(4), 2, 1, RGB565)  # RGB565 pixels occupy 2 bytes for every 1 pixel
+        else:
+            raise KeyError("Unsupported color_type: {}".format(color_type))
+        palette.pixel(1, 0, color)
+        palette.pixel(0, 0, bg_color)
 
         # 清屏
         if clear:
             self.clear()
 
-        dp = self.display
-        font_offset = font_size // 2
         for char in s:
             if auto_wrap and ((x + font_offset > dp.width and ord(char) < 128 and half_char) or
                               (x + font_size > dp.width and (not half_char or ord(char) > 128))):
@@ -503,93 +363,55 @@ class EasyDisplay:
             elif ord(char) < 16:
                 continue
 
-            # 超过范围的字符不会显示*
+            # 超过范围的字符不会显示
             if x > dp.width or y > dp.height:
                 continue
 
             # 获取字体的点阵数据
-            byte_data = list(self.get_bitmap(char))
+            byte_data = self.get_bitmap(char)
 
-            # 分四种情况逐个优化
-            #   1. 黑白屏幕/无放缩
-            #   2. 黑白屏幕/放缩
-            #   3. 彩色屏幕/无放缩
-            #   4. 彩色屏幕/放缩
-            byte_data = self._reverse_byte_data(byte_data) if invert else byte_data
-            if color_type == "MONO":
-                if font_size == self.font_size:
-                    dp.blit(
-                        FrameBuffer(bytearray(byte_data), font_size, font_size, MONO_HLSB),
-                        x, y,
-                        key)
+            # 准备并缩放字符数据
+            byte_data = bytearray(byte_data)
+            if font_size != self.font_size:
+                byte_data = self._hlsb_font_size(byte_data, font_size, self.font_size)
+
+            # 显示字符
+            fbuf = FrameBuffer(byte_data, font_size, font_size, MONO_HLSB)
+            if self._buffer:  # FrameBuffer Driven
+                dp.blit(fbuf, x, y, key, palette)
+            else:
+                if color_type == "RGB565":
+                    n_fbuf = FrameBuffer(bytearray(font_size * font_size * 2), font_size, font_size, RGB565)
+                    n_fbuf.blit(fbuf, 0, 0, key, palette)  # Render black and white pixels to color
+                elif color_type == "MONO":
+                    n_fbuf = fbuf  # Not tested
                 else:
-                    dp.blit(
-                        FrameBuffer(self._HLSB_font_size(byte_data, font_size, self.font_size), font_size,
-                                    font_size, MONO_HLSB), x, y, key)
-            elif color_type == "RGB565":
-                palette = self._calculate_palette(color, bg_color)
-                if font_size == self.font_size:
-                    data = self._flatten_byte_data(byte_data, palette)
-                    if self._buffer:
-                        dp.blit(
-                            FrameBuffer(data, font_size, font_size,
-                                        RGB565), x, y, key)
-                    else:
-                        dp.set_window(x, y, x + font_size - 1, y + font_size - 1)
-                        dp.write_data(data)
-                else:
-                    data = self._RGB565_font_size(byte_data, font_size, palette, self.font_size)
-                    if self._buffer:
-                        dp.blit(
-                            FrameBuffer(data,
-                                        font_size, font_size, RGB565), x, y, key)
-                    else:
-                        dp.set_window(x, y, x + font_size - 1, y + font_size - 1)
-                        dp.write_data(data)
+                    raise ValueError("Unsupported color_type: {}".format(color_type))
+                dp.set_window(x, y, x + font_size - 1, y + font_size - 1)
+                dp.write_data(n_fbuf)
+
             # 英文字符半格显示
             if ord(char) < 128 and half_char:
                 x += font_offset
             else:
                 x += font_size
 
-        try:
-            dp.show() if show else 0
-        except AttributeError:
-            pass
+        self.show() if show else 0
 
     def ppm(self, *args, **kwargs):
         self.pbm(*args, **kwargs)
 
     def pbm(self, file, x, y, key: int = -1, show: bool = None, clear: bool = None, invert: bool = False,
-            color_type=None, color: int = None, bg_color: int = None):
+            color: int = None, bg_color: int = None):
         """
+        Display PBM / PPM Image
         显示 pbm / ppm 图片
 
-        # 您可以通过使用 python3 的 pillow 库将图片转换为 pbm 格式，比如：
-        # convert_type = "1"  # 1 为黑白图像，RGBA 为彩色图像
-        # from PIL import Image
-        # with Image.open("文件名.png", "r") as img:
-        #   img2 = img.convert(convert_type)
-        #   img2.save("文件名.pbm")
-
-        Args:
-            file: pbm 文件
-                文件路径 (str)
-                原始数据 (BytesIO)
-            x: 显示图片的 x 坐标
-            y: 显示图片的 y 坐标
-            key: 指定的颜色将被视为透明（仅适用于 Framebuffer 模式）
-            show: 立即显示（仅适用于 Framebuffer 模式）
-            clear: 清理屏幕
-            invert: 反转颜色
-            color_type: 图像格式，RGB565 屏幕用 "RGB565"，黑白 屏幕用 "MONO"
-            color: 图像主体颜色（仅彩色屏幕显示黑白图像时生效）
-            bg_color: 图像背景颜色（仅彩色屏幕显示黑白图像时生效）
-
-        Display PBM / PPM Image
-
         # You can use the Pillow library in python3 to convert the image to PBM format. For example:
+        # 您可以通过使用 python3 的 pillow 库将图片转换为 pbm 格式，比如：
         # convert_type = "1"  # "1" for black and white image, "RGBA" for colored image
+        # convert_type = "1"  # 1 为黑白图像，RGBA 为彩色图像
+        #
         # from PIL import Image
         # with Image.open("filename.png", "r") as img:
         #   img2 = img.convert(convert_type)
@@ -597,17 +419,27 @@ class EasyDisplay:
 
         Args:
             file: PBM file
+                pbm 文件
                 File path (str)
+                文件路径
                 Raw data (BytesIO)
-            x: X-coordinate of the displayed image
-            y: Y-coordinate of the displayed image
+                原始数据
+            x: X-coordinate
+                 X 坐标
+            y: Y-coordinate
+                 Y 坐标
             key: Specified color to be treated as transparent (only applicable in Framebuffer mode)
+                指定的颜色将被视为透明（仅适用于 Framebuffer 模式）
             show: Show immediately (only applicable in Framebuffer mode)
+                立即显示（仅适用于 Framebuffer 模式）
             clear: Clear screen
+                清理屏幕
             invert: Invert colors
-            color_type: Image format, "RGB565" for RGB565 screen, "MONO" for black and white screen
+                反转颜色
             color: Image main color (only effective when displaying black and white image on a color screen)
+                图像主体颜色（仅彩色屏幕显示黑白图像时生效）
             bg_color: Image background color (only effective when displaying black and white image on a color screen)
+                图像背景颜色（仅彩色屏幕显示黑白图像时生效）
         """
         if key is None:
             key = self._key
@@ -617,8 +449,7 @@ class EasyDisplay:
             clear = self._clear
         if invert is None:
             invert = self.invert
-        if color_type is None:
-            color_type = self.color_type
+        color_type = self.color_type
         if color is None:
             color = self.color
         if bg_color is None:
@@ -635,45 +466,53 @@ class EasyDisplay:
             _width, _height = [int(value) for value in f.readline().split()]  # 获取图片的宽度和高度
             f_read = f.read
             if file_format == b"P4\n":  # P4 位图 二进制
-                if self._buffer:  # Framebuffer 模式
-                    data = bytearray(f_read())
-                    if invert:
-                        # data = bytearray([~b & 0xFF for b in data])  # Old
-                        color, bg_color = bg_color, color  # New
-                        # data = self._reverse_byte_data(data)
-                    if color_type == "MONO":
-                        fbuf = FrameBuffer(data, _width, _height, MONO_HLSB)
-                        palette = FrameBuffer(bytearray(1), 2, 1, MONO_HLSB)
-                        palette.pixel(1, 0, color)
-                        palette.pixel(0, 0, bg_color)
-                        dp.blit(fbuf, x, y, key, palette)
-                    elif color_type == "RGB565":
-                        fbuf = FrameBuffer(data, _width, _height, MONO_HLSB)
-                        palette = FrameBuffer(bytearray(2 * 2), 2, 1, RGB565)
-                        palette.pixel(1, 0, color)
-                        palette.pixel(0, 0, bg_color)
-                        # palette = FrameBuffer(bytearray((color, bg_color)), 2, 1, RGB565)
-                        dp.blit(fbuf, x, y, key, palette)
-                    if show:  # 立即显示
-                        try:
-                            dp.show()
-                        except AttributeError:
-                            pass
+                # 颜色反转
+                if invert:
+                    color, bg_color = bg_color, color
+                # 配置调色板
+                if color_type == "MONO":
+                    palette = FrameBuffer(bytearray(1), 2, 1, MONO_HLSB)
+                elif color_type == "RGB565":
+                    palette = FrameBuffer(bytearray(4), 2, 1, RGB565)
+                else:
+                    raise KeyError("Unsupported color_type: {}".format(color_type))
+                palette.pixel(1, 0, color)
+                palette.pixel(0, 0, bg_color)
 
+                if self._buffer:  # Framebuffer 模式
+                    data = bytearray(f_read())  # 读取并显示图像
+                    fbuf = FrameBuffer(data, _width, _height, MONO_HLSB)
+                    dp.blit(fbuf, x, y, key, palette)
                 else:  # 直接驱动
-                    buffer_size = self.BUFFER_SIZE
-                    if invert:  # New
-                        color, bg_color = bg_color, color
-                    palette = self._calculate_palette(color, bg_color)  # 计算调色板
-                    dp.set_window(x, y, x + _width - 1, y + _height - 1)  # 设置窗口
-                    data = f_read(buffer_size)
                     write_data = dp.write_data
+                    dp.set_window(x, y, x + _width - 1, y + _height - 1)  # 设置窗口
+                    buffer_size = self.READ_SIZE
+                    width = buffer_size * 8
+                    # Use different types of buffers according to different color types
+                    if color_type == "RGB565":
+                        data_fbuf = FrameBuffer(bytearray(buffer_size * 16), width, 1, RGB565)
+                    elif color_type == "MONO":
+                        data_fbuf = FrameBuffer(bytearray(buffer_size), width, 1, MONO_HLSB)  # Not tested
+                    else:
+                        raise ValueError("Unsupported color_type: {}".format(color_type))
+                    data_fbuf_blit = data_fbuf.blit
+                    # Read a picture several times, taking a part of it each time
+                    data = bytearray(f_read(buffer_size))
                     while data:
-                        # if invert:  # Old
-                        #     data = bytes([~b & 0xFF for b in data])
-                        buffer = self._flatten_byte_data(data, palette)
-                        write_data(buffer)
-                        data = f_read(buffer_size)  # 30 * 8 = 240, 理论上 ESP8266 的内存差不多能承载这个大小的彩色图片
+                        fbuf = FrameBuffer(data, width, 1, MONO_HLSB)
+                        data_fbuf_blit(fbuf, 0, 0, key, palette)  # Render MONO pixels into RGB565 pixels
+                        len_data = len(data)
+                        if len_data < buffer_size:  # Limit the data sent to no more than the Buffer size, so as to avoid data overflow and affect the display
+                            if color_type == "RGB565":
+                                fbuf_data = bytearray(data_fbuf)[:len_data * 16]
+                            elif color_type == "MONO":
+                                fbuf_data = bytearray(data_fbuf)[:len_data]
+                            else:
+                                raise ValueError("Unsupported color_type: {}".format(color_type))
+                        else:
+                            fbuf_data = bytearray(data_fbuf)
+                        write_data(fbuf_data)
+                        data = bytearray(f_read(buffer_size))
 
             elif file_format == b"P6\n":  # P6 像素图 二进制
                 max_pixel_value = f.readline()  # 获取最大像素值
@@ -684,10 +523,11 @@ class EasyDisplay:
                 try:
                     dp_color = dp.color
                 except AttributeError:
-                    pass
+                    dp_color = self.rgb565_color
                 dp_pixel = dp.pixel
                 if self._buffer:  # Framebuffer 模式
-                    buffer = bytearray(_width * 2)
+                    if color_type == "RGB565":
+                        buffer = bytearray(_width * 2)
                     for _y in r_height:  # 逐行显示图片
                         for _x in r_width:
                             f_rinto(color_bytearray)
@@ -697,8 +537,7 @@ class EasyDisplay:
                                 g = 255 - g
                                 b = 255 - b
                             if color_type == "RGB565":
-                                buffer[_x * 2: (_x + 1) * 2] = dp_color(
-                                    r, g, b).to_bytes(2, 'big')  # 通过索引赋值
+                                buffer[_x * 2: (_x + 1) * 2] = dp_color(r, g, b).to_bytes(2, 'big')  # 通过索引赋值
                             elif color_type == "MONO":
                                 _color = int((r + g + b) / 3) >= 127
                                 if _color:
@@ -710,11 +549,6 @@ class EasyDisplay:
                         if color_type == "RGB565":
                             fbuf = FrameBuffer(buffer, _width, 1, RGB565)
                             dp.blit(fbuf, x, y + _y, key)
-                    if show:  # 立即显示
-                        try:
-                            dp.show()
-                        except AttributeError:
-                            pass
                 else:  # 直接驱动
                     dp.set_window(x, y, x + _width - 1, y + _height - 1)  # 设置窗口
                     buffer = bytearray(_width * 2)
@@ -736,54 +570,47 @@ class EasyDisplay:
                                 else:
                                     _color = bg_color
                                 if _color != key:  # 不显示指定颜色
-                                    dp_pixel(_x + x, _y + y, _color)  # NOTE 可使用缓冲区进行性能优化，考虑到兼容性，暂不修改
+                                    dp_pixel(_x + x, _y + y, _color)
                         if color_type == "RGB565":
                             dp.write_data(buffer)
-                        # NOTE 可使用缓冲区进行性能优化，考虑到兼容性，暂不修改
-
             else:
                 raise TypeError("Unsupported File Format Type.")
 
-    def bmp(self, file, x, y, key: int = -1, show: bool = None, clear: bool = None, invert: bool = False,
-            color_type=None, color: int = None, bg_color: int = None):
-        """
-        显示 bmp 图片
+            self.show() if show else 0  # 立即显示
 
+    def bmp(self, file, x, y, key: int = -1, show: bool = None, clear: bool = None, invert: bool = False,
+            color: int = None, bg_color: int = None):
+        """
+        Display BMP Image  显示 bmp 图片
+
+        # You can convert the image to `24-bit` `bmp` format using the Paint application in Windows.
+        # Alternatively, you can use software like `Image2Lcd` to convert the image to `24-bit` `bmp` format (horizontal scan, includes image header data, 24-bit grayscale).
         # 您可以通过使用 windows 的 画图 将图片转换为 `24-bit` 的 `bmp` 格式
         # 也可以使用 `Image2Lcd` 这款软件将图片转换为 `24-bit` 的 `bmp` 格式（水平扫描，包含图像头数据，灰度二十四位）
 
         Args:
-            file: bmp 文件
-                文件路径 (str)
-                原始数据 (BytesIO)
-            x: 显示图片的 x 坐标
-            y: 显示图片的 y 坐标
-            key: 指定的颜色将被视为透明（仅适用于 Framebuffer 模式）
-            show: 立即显示（仅适用于 Framebuffer 模式）
-            clear: 清理屏幕
-            invert: 反转颜色
-            color_type: 图像格式，RGB565 屏幕用 "RGB565"，MONO 屏幕用 "MONO"
-            color: 图像主体颜色（仅彩色图片显示以黑白形式显示时生效）
-            bg_color: 图像背景颜色（仅彩色图片显示以黑白形式显示时生效）
-
-        Display BMP Image
-
-        # You can convert the image to `24-bit` `bmp` format using the Paint application in Windows.
-        # Alternatively, you can use software like `Image2Lcd` to convert the image to `24-bit` `bmp` format (horizontal scan, includes image header data, 24-bit grayscale).
-
-        Args:
-            file: BMP file
+            file: bmp file
+                bmp 文件
                 File path (str)
+                文件路径
                 Raw data (BytesIO)
-            x: X-coordinate of the displayed image
-            y: Y-coordinate of the displayed image
+                原始数据
+            x: X-coordinate
+                X 坐标
+            y: Y-coordinate
+                Y 坐标
             key: Specified color to be treated as transparent (only applicable in Framebuffer mode)
+                指定的颜色将被视为透明（仅适用于 Framebuffer 模式）
             show: Show immediately (only applicable in Framebuffer mode)
+                立即显示（仅适用于 Framebuffer 模式）
             clear: Clear screen
+                清理屏幕
             invert: Invert colors
-            color_type: Image format, "RGB565" for RGB565 screen, "MONO" for black and white screen
+                反转颜色
             color: Image main color (only effective when displaying black and white image on a color screen)
+                   图像主体颜色（仅彩色图片显示以黑白形式显示时生效）
             bg_color: Image background color (only effective when displaying black and white image on a color screen)
+                   图像背景颜色（仅彩色图片显示以黑白形式显示时生效）
         """
         if key is None:
             key = self._key
@@ -793,8 +620,7 @@ class EasyDisplay:
             clear = self._clear
         if invert is None:
             invert = self.invert
-        if color_type is None:
-            color_type = self.color_type
+        color_type = self.color_type
         if color is None:
             color = self.color
         if bg_color is None:
@@ -831,7 +657,7 @@ class EasyDisplay:
                             flip = False
                         else:
                             flip = True
-                        if _width > dp.width:  # 限制图像显示的最大大小（多余部分将被舍弃）
+                        if _width > dp.width:  # Limit the maximum size of image display
                             _width = dp.width
                         if _height > dp.height:
                             _height = dp.height
@@ -881,7 +707,7 @@ class EasyDisplay:
                                         else:
                                             _color = bg_color
                                         if _color != key:  # 不显示指定颜色
-                                            dp_pixel(_x + x, _y + y, _color)  # NOTE 可使用缓冲区进行性能优化，考虑到兼容性，暂不修改
+                                            dp_pixel(_x + x, _y + y, _color)
 
                             if color_type == "RGB565":
                                 if self_buf:
@@ -889,13 +715,8 @@ class EasyDisplay:
                                     dp.blit(fbuf, x, y + _y, key)
                                 else:
                                     dp.write_data(buffer)
-                            # NOTE 可使用缓冲区进行性能优化，考虑到兼容性，暂不修改
 
-                        if show:  # 立即显示
-                            try:
-                                dp.show()
-                            except AttributeError:
-                                pass
+                        self.show() if show else 0  # 立即显示
                     else:
                         raise TypeError("Unsupported file type: only 24-bit uncompressed BMP images are supported.")
             else:
@@ -903,25 +724,17 @@ class EasyDisplay:
 
     def dat(self, file, x, y, key=-1):
         """
-        显示屏幕原始数据文件，拥有极高的效率，仅支持 RGB565 格式
-
-        Args:
-            file: dat 文件
-                文件路径 (str)
-                原始数据 (BytesIO)
-            x: X坐标
-            y: Y 坐标
-            key: 指定的颜色将被视为透明（仅适用于 Framebuffer 模式）
-
         Display screen raw data file, with extremely high efficiency, only supports RGB565 format.
+        显示表示屏幕原始数据的文件，拥有极高的效率，仅支持 RGB565 格式
 
         Args:
-            file: DAT file
-                File path (str)
-                Raw data (BytesIO)
-            x: X-coordinate
-            y: Y-coordinate
+            file: dat file  dat 文件
+                File path (str)  文件路径
+                Raw data (BytesIO)  原始数据
+            x: X-coordinate  X坐标
+            y: Y-coordinate  Y 坐标
             key: Specified color to be treated as transparent (only applicable in Framebuffer mode)
+                指定的颜色将被视为透明（仅适用于 Framebuffer 模式）
         """
         if key is None:
             key = self._key
@@ -948,7 +761,7 @@ class EasyDisplay:
                             data = f_read(_width)
                             y_offset += 1
                     else:  # 直接驱动模式
-                        size = self.BUFFER_SIZE * 10
+                        size = self.READ_SIZE * 10
                         data = f_read(size)
                         dp_write = self.display.write_data
                         self.display.set_window(x, y, x + _width - 1, y + _height - 1)
