@@ -144,7 +144,7 @@ class ST7735(framebuf.FrameBuffer):
             self.cs = Pin(cs, Pin.OUT, Pin.PULL_DOWN)
         if bl is not None:
             self.bl = PWM(Pin(bl, Pin.OUT))
-            self.bl.duty_u16(1023)
+            self.back_light(255)
         else:
             self.bl = None
         self._rotate = rotate
