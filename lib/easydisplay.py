@@ -261,7 +261,7 @@ class EasyDisplay:
         self.font_bitmap_size = self.font_bmf_info[8]
 
     def text(self, s: str, x: int, y: int,
-             color: int = 0xFFFF, bg_color: int = 0, size: int = None,
+             color: int = None, bg_color: int = None, size: int = None,
              half_char: bool = None, auto_wrap: bool = None, show: bool = None, clear: bool = None,
              key: bool = None, invert: bool = None, line_spacing: int = None, *args, **kwargs):
         """
@@ -401,7 +401,7 @@ class EasyDisplay:
     def ppm(self, *args, **kwargs):
         self.pbm(*args, **kwargs)
 
-    def pbm(self, file, x, y, key: int = -1, show: bool = None, clear: bool = None, invert: bool = False,
+    def pbm(self, file, x, y, key: int = None, show: bool = None, clear: bool = None, invert: bool = False,
             color: int = None, bg_color: int = None):
         """
         Display PBM / PPM Image
@@ -578,7 +578,7 @@ class EasyDisplay:
 
             self.show() if show else 0  # 立即显示
 
-    def bmp(self, file, x, y, key: int = -1, show: bool = None, clear: bool = None, invert: bool = False,
+    def bmp(self, file, x, y, key: int = None, show: bool = None, clear: bool = None, invert: bool = False,
             color: int = None, bg_color: int = None):
         """
         Display BMP Image  显示 bmp 图片
@@ -722,7 +722,7 @@ class EasyDisplay:
             else:
                 raise TypeError("Unsupported file type: only BMP images are supported.")
 
-    def dat(self, file, x, y, key=-1):
+    def dat(self, file, x, y, key=None):
         """
         Display screen raw data file, with extremely high efficiency, only supports RGB565 format.
         显示表示屏幕原始数据的文件，拥有极高的效率，仅支持 RGB565 格式
